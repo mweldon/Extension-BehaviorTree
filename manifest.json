@@ -1,0 +1,13 @@
+{
+    "display_name": "BehaviorTree",
+    "loading_order": 1000,
+    "generate_interceptor": "BehaviorTree",
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "BSunshine",
+    "version": "1.0.0",
+    "homePage": "https://github.com/mweldon/Extension-BehaviorTree",
+    "auto_update": true
+}
