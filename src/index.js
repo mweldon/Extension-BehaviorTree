@@ -1,9 +1,13 @@
-import { eventSource, event_types, getRequestHeaders, is_send_press, saveSettingsDebounced } from '../../../../script.js';
-import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../../extensions.js';
-import { SECRET_KEYS, secret_state } from '../../../secrets.js';
-import { collapseNewlines } from '../../../power-user.js';
-import { bufferToBase64, debounce } from '../../../utils.js';
-import { decodeTextTokens, getTextTokens, tokenizers } from '../../../tokenizers.js';
+import { eventSource, event_types, getRequestHeaders, is_send_press, saveSettingsDebounced } from '../../../../../script.js';
+import { extension_settings, getContext, renderExtensionTemplateAsync } from '../../../../extensions.js';
+import { SECRET_KEYS, secret_state } from '../../../../secrets.js';
+import { collapseNewlines } from '../../../../power-user.js';
+import { bufferToBase64, debounce } from '../../../../utils.js';
+import { decodeTextTokens, getTextTokens, tokenizers } from '../../../../tokenizers.js';
+import AsyncBehaviorTree from './tree/AsyncBehaviorTree.js';
+import TestTree from './tree/TestTree.js';
+import KoboldCpp from './engine/KoboldCpp.js';
+
 
 const MODULE_NAME = 'third-party/Extension-BehaviorTree';
 
@@ -152,19 +156,21 @@ window['BehaviorTree'] = async (name, args = {}, options = {}) => {
 // });
 
 jQuery(async () => {
-    console.log('MWTEST: BT start');
+    console.log('MWTEST: BT start 2');
 
     if (!extension_settings.behaviortree) {
         extension_settings.behaviortree = settings;
     }
 
-    Object.assign(settings, extension_settings.hypebot);
+    Object.assign(settings, extension_settings.behaviortree);
     const getContainer = () => $(document.getElementById('behaviortree_container') ?? document.getElementById('extensions_settings2'));
     getContainer().append(await renderExtensionTemplateAsync(MODULE_NAME, 'settings'));
 
     $('#behaviortree_enabled').prop('checked', settings.enabled).on('input', () => {
-        settings.enabled = $('#behaviortree_enabled_enabled').prop('checked');
+        settings.enabled = $('#behaviortree_enabled').prop('checked');
         Object.assign(extension_settings.behaviortree, settings);
         saveSettingsDebounced();
     });
+
+    btree = new AsyncBehaviorTree(new KoboldCpp(), new TestTree());
 });
