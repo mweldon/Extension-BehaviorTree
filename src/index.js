@@ -13,7 +13,9 @@ const settings = {
     chatQueryLength: 30
 };
 
-var btree = null;
+let btree = null;
+let lastResponse = '';
+let lastChatString = '';
 
 function updateCounter(newValue) {
     const {
@@ -71,10 +73,20 @@ window['BehaviorTree'] = async (coreChat) => {
 
     const chatString = buildChatForQuery(coreChat);
 
+    // Reuse the previous response if the chat hasn't changed, i.e. swipes.
+    if (lastResponse && lastChatString && chatString === lastChatString) {
+        console.log(`Behavior Tree using cached result:\n${lastResponse}`);
+        setExtensionPrompt(MODULE_NAME, lastResponse, 1, settings.chatDepth);
+        return;
+    }
+
     console.log('Running Behavior Tree');
     let response = await executeBehaviorTree(chatString);
     response = substituteParams(response);
     console.log(`Behavior Tree result:\n${response}`);
+
+    lastChatString = chatString;
+    lastResponse = response;
 
     setExtensionPrompt(MODULE_NAME, response, 1, settings.chatDepth);
 }
@@ -104,6 +116,11 @@ jQuery(async () => {
     });
     $('#bt-chat-depth').val(settings.chatDepth).on('input', () => {
         settings.chatDepth = Number($('#bt-chat-depth').val());
+        if (settings.chatDepth < 1) {
+            $('#bt-parameter-warning').show();
+        } else {
+            $('#bt-parameter-warning').hide();
+        }
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
@@ -124,6 +141,12 @@ jQuery(async () => {
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
+
+    if (settings.chatDepth < 1) {
+        $('#bt-parameter-warning').show();
+    } else {
+        $('#bt-parameter-warning').hide();
+    }
 
     btree = new AsyncBehaviorTree(new KoboldCpp(), new AuroraTree(), substituteParams);
 });
