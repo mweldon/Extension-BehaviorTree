@@ -1,14 +1,45 @@
-<div class="behaviortree_settings">
+<div class="bt_settings">
     <div class="inline-drawer">
         <div class="inline-drawer-toggle inline-drawer-header">
             <b>BehaviorTree</b>
             <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
         </div>
         <div class="inline-drawer-content">
-            <label class="checkbox_label" for="behaviortree_enabled">
-                <input id="behaviortree_enabled" type="checkbox" class="checkbox">
+            <label class="checkbox_label" for="bt_enabled">
+                <input id="bt_enabled" type="checkbox" class="checkbox">
                 Enabled
             </label>
+
+            <div class="flex-container marginTopBot5">
+                <div class="flex-container flex1 flexFlowColum title="How far from the bottom of the context will the prompt be injected.">
+                    <label for="bt-chat-depth">
+                        <small data-i18n="Position in chat">Position in chat</small>
+                    </label>
+                    <input type="number" id="bt-chat-depth" class="text_pole" min="0" max="99" />
+                </div>
+                <div class="flex-container flex1 flexFlowColumn" title="How often will the Behavior Tree be executed.">
+                    <label for="bt-execution-frequency">
+                        <small data-i18n="Execution frequency">Execution frequency</small>
+                    </label>
+                    <input type="number" id="bt-execution-frequency" class="text_pole" min="1" max="99" />
+                </div>
+                <div class="flex-container flex1 flexFlowColumn" title="How many messages until the Behavior Tree is next executed.">
+                    <label for="bt-counter">
+                        <small data-i18n="Next execution in">Next execution in</small>
+                    </label>
+                    <input type="number" id="bt-counter" class="text_pole" min="0" max="99" />
+                </div>
+            </div>
+            <div class="flex-container marginTopBot5">
+                <div class="flex-container flex1 flexFlowColumn"
+                    title="How many recent messages to process when executing the Behavior Tree.">
+                    <label for="bt-chat-length">
+                        <small data-i18n="Chat query length">Chat query length</small>
+                    </label>
+                    <input type="number" id="bt-chat-length" class="text_pole" min="1" max="99" />
+                </div>
+            </div>
+
         </div>
     </div>
 </div>

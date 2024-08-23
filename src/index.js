@@ -6,19 +6,53 @@ const MODULE_NAME = 'third-party/Extension-BehaviorTree';
 const SETTINGS_LAYOUT = 'src/settings';
 
 const settings = {
-    enabled: false
+    enabled: false,
+    chatDepth: 0,
+    executionFrequency: 1,
+    executionCounter: 1,
+    chatQueryLength: 30
 };
 
 var btree = null;
 
-window['BehaviorTree'] = async (coreChat) => {
+function updateCounter(newValue) {
     const {
-        name1,
-        name2,
-        setExtensionPrompt
+        saveSettingsDebounced,
     } = SillyTavern.getContext();
 
-    console.log(`BehaviorTree generateInterceptor user: ${name1}, char: ${name2}`);
+    settings.executionCounter = newValue;
+    $('#bt-counter').val(settings.executionCounter)
+    saveSettingsDebounced();
+}
+
+function buildChatForQuery(coreChat) {
+    let chatString = "";
+    const maxChatLength = Math.min(settings.chatQueryLength, coreChat.length);
+    for (let i = coreChat.length - maxChatLength; i < coreChat.length; i++) {
+        const message = coreChat[i];
+        chatString += `${message.name}: ${message.mes}\n`;
+    }
+    return chatString;
+}
+
+async function executeBehaviorTree(chatString) {
+    try {
+        btree.reset();
+        btree.setContext(chatString);
+        btree.step();
+        const response = await btree.getResponse();
+        return response;
+    } catch {
+        console.error(`ERROR executing BehaviorTree`);
+        return '';
+    }
+}
+
+window['BehaviorTree'] = async (coreChat) => {
+    const {
+        setExtensionPrompt,
+        substituteParams
+    } = SillyTavern.getContext();
 
     if (!settings.enabled) {
         return;
@@ -28,37 +62,29 @@ window['BehaviorTree'] = async (coreChat) => {
         return;
     }
 
-    let chatString = "";
-    const maxChatLength = Math.min(30, coreChat.length);
-    for (let i = coreChat.length-maxChatLength; i < coreChat.length; i++) {
-        const message = coreChat[i];
-        chatString += `${message.name}: ${message.mes}\n`;
+    if (settings.executionCounter != 1) {
+        updateCounter(settings.executionCounter - 1)
+        return;
+    } else {
+        updateCounter(settings.executionFrequency)
     }
 
-    try {
-        btree.reset();
-        btree.setContext(chatString);
-        btree.setTags({
-            'user': name1,
-            'char': name2
-        });
+    const chatString = buildChatForQuery(coreChat);
 
-        btree.step();
-        const response = await btree.getResponse();
-        console.log(`Result: ${response}`);
+    console.log('Running Behavior Tree');
+    let response = await executeBehaviorTree(chatString);
+    response = substituteParams(response);
+    console.log(`Behavior Tree result:\n${response}`);
 
-        setExtensionPrompt(MODULE_NAME, response, 1, 0);
-    } catch {
-        console.error(`ERROR calling BehaviorTree`);
-        setExtensionPrompt(MODULE_NAME, '', 1, 0);
-    }
+    setExtensionPrompt(MODULE_NAME, response, 1, settings.chatDepth);
 }
 
 jQuery(async () => {
     const {
         extensionSettings,
         renderExtensionTemplateAsync,
-        saveSettingsDebounced
+        saveSettingsDebounced,
+        substituteParams
     } = SillyTavern.getContext();
 
     console.log('BehaviorTree started');
@@ -71,11 +97,33 @@ jQuery(async () => {
     const getContainer = () => $(document.getElementById('behaviortree_container') ?? document.getElementById('extensions_settings2'));
     getContainer().append(await renderExtensionTemplateAsync(MODULE_NAME, SETTINGS_LAYOUT));
 
-    $('#behaviortree_enabled').prop('checked', settings.enabled).on('input', () => {
-        settings.enabled = $('#behaviortree_enabled').prop('checked');
+    $('#bt_enabled').prop('checked', settings.enabled).on('input', () => {
+        settings.enabled = $('#bt_enabled').prop('checked');
+        Object.assign(extensionSettings.behaviortree, settings);
+        saveSettingsDebounced();
+    });
+    $('#bt-chat-depth').val(settings.chatDepth).on('input', () => {
+        settings.chatDepth = Number($('#bt-chat-depth').val());
+        Object.assign(extensionSettings.behaviortree, settings);
+        saveSettingsDebounced();
+    });
+    $('#bt-execution-frequency').val(settings.executionFrequency).on('input', () => {
+        settings.executionFrequency = Number($('#bt-execution-frequency').val());
+        settings.executionCounter = Math.min(settings.executionCounter, settings.executionFrequency);
+        $('#bt-counter').val(settings.executionCounter)
+        Object.assign(extensionSettings.behaviortree, settings);
+        saveSettingsDebounced();
+    });
+    $('#bt-counter').val(settings.executionCounter).on('input', () => {
+        settings.executionCounter = Number($('#bt-counter').val());
+        Object.assign(extensionSettings.behaviortree, settings);
+        saveSettingsDebounced();
+    });
+    $('#bt-chat-length').val(settings.chatQueryLength).on('input', () => {
+        settings.chatQueryLength = Number($('#bt-chat-length').val());
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
 
-    btree = new AsyncBehaviorTree(new KoboldCpp(), new AuroraTree());
+    btree = new AsyncBehaviorTree(new KoboldCpp(), new AuroraTree(), substituteParams);
 });

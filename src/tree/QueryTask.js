@@ -10,7 +10,6 @@ export class QueryTask extends Task {
     constructor(props) {
         super({
             start: function (blackboard) {
-                console.log('start');
                 this.isRunning = false;
                 this.isFinished = false;
                 this.gotYesResponse = false;
@@ -18,18 +17,15 @@ export class QueryTask extends Task {
 
             end: function (blackboard) {
                 blackboard.running = null;
-                console.log('end');
             },
 
             run: function (blackboard) {
                 if (!this.isRunning && !this.isFinished) {
                     this.isRunning = true;
-                    
-                    const query = props.query
-                        .replace(/\{\{user\}\}/g, blackboard.tags.user)
-                        .replace(/\{\{char\}\}/g, blackboard.tags.char);
 
-                    console.log(`QueryTask: ${this.name}, ${query}`);
+                    const query = blackboard.substituteParams(props.query);
+
+                    console.log(`${this.name}: ${query}`);
                     blackboard.running = blackboard.engine.performQuery(blackboard.context, query)
                         .then(response => {
                             if (response === 'YES') {
@@ -48,16 +44,15 @@ export class QueryTask extends Task {
 
                 if (this.isFinished) {
                     if (this.gotYesResponse) {
-                        console.log("SUCCESS");
+                        console.log("YES");
                         return SUCCESS;
                     } else {
-                        console.log("FAILURE");
+                        console.log("NO");
                         return FAILURE;
                     }
                 }
 
-                console.log("RUNNING");     
-                return RUNNING;          
+                return RUNNING;
             },
 
             ...props
