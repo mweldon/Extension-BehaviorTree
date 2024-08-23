@@ -19,6 +19,8 @@ export default class AsyncBehaviorTree {
             tree: tree.root,
             blackboard: this.blackboard
         });
+
+        this.tree = tree;
     }
 
     setContext(context) {
@@ -41,7 +43,7 @@ export default class AsyncBehaviorTree {
     }
 
     reset() {
-        this.blackboard.context = '';
+        this.blackboard.vars = this.tree.vars;
         this.blackboard.scenarios = [];
     }
 
