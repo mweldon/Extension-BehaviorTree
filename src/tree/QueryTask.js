@@ -1,11 +1,5 @@
 import { FAILURE, RUNNING, SUCCESS, Task } from 'behaviortree';
 
-// class QueryTaskProps {
-//     query;
-//     successAction;
-//     failureAction;
-// }
-
 export class QueryTask extends Task {
     constructor(props) {
         super({
@@ -23,21 +17,30 @@ export class QueryTask extends Task {
                 if (!this.isRunning && !this.isFinished) {
                     this.isRunning = true;
 
-                    const query = blackboard.substituteParams(props.query);
+                    const query = blackboard.substituteParams(this.config.data);
 
-                    console.log(`${this.name}: ${query}`);
+                    console.log(`Query: ${query}`);
                     blackboard.running = blackboard.engine.performQuery(blackboard.context, query)
                         .then(response => {
+                            let queryActions = null;
                             if (response === 'YES') {
-                                if (props.successAction) {
-                                    props.successAction(blackboard);
-                                }
+                                queryActions = this.config.yes
                                 this.gotYesResponse = true;
                             } else if (response === 'NO') {
-                                if (props.failureAction) {
-                                    props.failureAction(blackboard);
+                                queryActions = this.config.no
+                            }
+
+                            if (queryActions) {
+                                if (queryActions.set_vars) {
+                                    for (const [key, value] of Object.entries(queryActions.set_vars)) {
+                                        blackboard.vars[key] = Math.max(Math.min(value, 100), -1);
+                                    }
+                                }
+                                if (queryActions.add_scenarios) {
+                                    blackboard.scenarios.push(...queryActions.add_scenarios)
                                 }
                             }
+
                             this.isFinished = true;
                         });
                 }

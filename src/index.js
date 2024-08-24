@@ -1,5 +1,4 @@
 import AsyncBehaviorTree from './tree/AsyncBehaviorTree.js';
-import AuroraTree from './tree/AuroraTree.js';
 import KoboldCpp from './engine/KoboldCpp.js';
 
 const MODULE_NAME = 'third-party/Extension-BehaviorTree';
@@ -148,5 +147,5 @@ jQuery(async () => {
         $('#bt-parameter-warning').hide();
     }
 
-    btree = new AsyncBehaviorTree(new KoboldCpp(), new AuroraTree(), substituteParams);
+    btree = new AsyncBehaviorTree(new KoboldCpp(), "./testtree.json", substituteParams);
 });

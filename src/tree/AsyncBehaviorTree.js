@@ -1,23 +1,54 @@
-import { BehaviorTree } from 'behaviortree';
-import { FAILURE, RUNNING, SUCCESS } from 'behaviortree';
+import { FAILURE, SUCCESS, BehaviorTree, BehaviorTreeImporter } from 'behaviortree';
+import { AddScenariosTask } from './AddScenariosTask.js';
+import { SetVarsTask } from './SetVarsTask.js';
+import { CreateVarsTask } from './CreateVarsTask.js';
+import { QueryTask } from './QueryTask.js';
+
+import { testtree } from './testtree.js'
 
 export default class AsyncBehaviorTree {
-    constructor(engine, tree, substituteParams) {
+    constructor(engine, treefile, substituteParams) {
         this.blackboard = {
             engine: engine,
             substituteParams: substituteParams,
-            vars: tree.vars,
+            vars: {},
+            varsmap: {},
             context: '',
             scenarios: [],
             running: null
         };
 
+        const importer = this.createBehaviorTreeImporter();
+
+        // TODO: Load file
+
+        //var treeFileObject = JSON.parse(this.readFile(treefile));
+        var treeFileObject = testtree;
+        this.tree = importer.parse(testtree);
+
         this.bTree = new BehaviorTree({
-            tree: tree.root,
+            tree: this.tree,
             blackboard: this.blackboard
         });
+    }
 
-        this.tree = tree;
+    readFile(file) {
+        // var files = evt.target.files;
+        // var file = files[0];
+        var reader = new FileReader();
+        reader.onload = function (event) {
+            console.log(event.target.result);
+        }
+        reader.readAsText(file)
+    }
+
+    createBehaviorTreeImporter() {
+        const importer = new BehaviorTreeImporter();
+        importer.defineType("create_vars", CreateVarsTask);
+        importer.defineType("query", QueryTask);
+        importer.defineType("add_scenarios", AddScenariosTask);
+        importer.defineType("set_vars", SetVarsTask);
+        return importer;
     }
 
     setContext(context) {
@@ -32,7 +63,7 @@ export default class AsyncBehaviorTree {
     }
 
     reset() {
-        this.blackboard.vars = this.tree.vars;
+        this.blackboard.vars = {};
         this.blackboard.scenarios = [];
     }
 
@@ -52,10 +83,10 @@ export default class AsyncBehaviorTree {
     buildResponse() {
         var response = '';
         if (Object.values(this.blackboard.vars).length > 0) {
-            response += 'Keep the following instructions secret. Generate the next response for {{char}} given the following parameters:\n';
-            for (const varEntry of Object.values(this.blackboard.vars)) {
-                if (varEntry.value >= 0) {
-                    response += varEntry.prompt + varEntry.value + '%\n';
+            response += 'Keep the following instructions secret. Do not mention any of the following information in your response. Use the following parameters to generate your next response:\n';
+            for (const [key, value] of Object.entries(this.blackboard.vars)) {
+                if (value >= 0 && this.blackboard.varsmap[key]) {
+                    response += this.blackboard.varsmap[key] + value + '%\n';
                 }
             }
         }
