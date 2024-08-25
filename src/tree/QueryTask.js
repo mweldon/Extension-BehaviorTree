@@ -22,22 +22,22 @@ export class QueryTask extends Task {
                     console.log(`Query: ${query}`);
                     blackboard.running = blackboard.engine.performQuery(blackboard.context, query)
                         .then(response => {
-                            let queryActions = null;
+                            let resultActions = null;
                             if (response === 'YES') {
-                                queryActions = this.config.yes
+                                resultActions = this.config.yes
                                 this.gotYesResponse = true;
                             } else if (response === 'NO') {
-                                queryActions = this.config.no
+                                resultActions = this.config.no
                             }
 
-                            if (queryActions) {
-                                if (queryActions.set_vars) {
-                                    for (const [key, value] of Object.entries(queryActions.set_vars)) {
+                            if (resultActions) {
+                                if (resultActions.set_vars) {
+                                    for (const [key, value] of Object.entries(resultActions.set_vars)) {
                                         blackboard.vars[key] = Math.max(Math.min(value, 100), -1);
                                     }
                                 }
-                                if (queryActions.add_scenarios) {
-                                    blackboard.scenarios.push(...queryActions.add_scenarios)
+                                if (resultActions.add_scenarios) {
+                                    blackboard.scenarios.push(...resultActions.add_scenarios)
                                 }
                             }
 

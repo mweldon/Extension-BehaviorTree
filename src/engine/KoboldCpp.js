@@ -15,7 +15,7 @@ export default class KoboldCpp {
     constructor() {
         this.args = {
             'max_context_length': 16384,
-            'max_length': 20,
+            'max_length': 10,
             'prompt': "Hello",
             'quiet': true,
             'rep_pen': 1,
@@ -66,7 +66,6 @@ export default class KoboldCpp {
         if (response) {
             const results = response.data.results;
             const generatedText = (results.length > 0) ? results[0].text : '';
-            //console.log('Response from LLM:', generatedText);
 
             if (generatedText.startsWith('YES')) {
                 return 'YES';

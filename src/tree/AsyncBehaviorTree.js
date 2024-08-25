@@ -3,6 +3,7 @@ import { AddScenariosTask } from './AddScenariosTask.js';
 import { SetVarsTask } from './SetVarsTask.js';
 import { CreateVarsTask } from './CreateVarsTask.js';
 import { QueryTask } from './QueryTask.js';
+import { RandomRollTask } from './RandomRollTask.js';
 
 import { testtree } from './testtree.js'
 
@@ -32,15 +33,15 @@ export default class AsyncBehaviorTree {
         });
     }
 
-    readFile(file) {
-        // var files = evt.target.files;
-        // var file = files[0];
-        var reader = new FileReader();
-        reader.onload = function (event) {
-            console.log(event.target.result);
-        }
-        reader.readAsText(file)
-    }
+    // readFile(file) {
+    //     // var files = evt.target.files;
+    //     // var file = files[0];
+    //     var reader = new FileReader();
+    //     reader.onload = function (event) {
+    //         console.log(event.target.result);
+    //     }
+    //     reader.readAsText(file)
+    // }
 
     createBehaviorTreeImporter() {
         const importer = new BehaviorTreeImporter();
@@ -48,6 +49,7 @@ export default class AsyncBehaviorTree {
         importer.defineType("query", QueryTask);
         importer.defineType("add_scenarios", AddScenariosTask);
         importer.defineType("set_vars", SetVarsTask);
+        importer.defineType("random_roll", RandomRollTask);
         return importer;
     }
 

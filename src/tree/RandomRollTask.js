@@ -1,39 +1,37 @@
 import { FAILURE, SUCCESS, Task } from 'behaviortree';
 
-// class RandomRollTaskProps {
-//    lowValue,
-//    highValue,
-//    target,
-//    successAction,
-//    failureAction
-// }
-
 export class RandomRollTask extends Task {
     constructor(props) {
         super({
-            start: function (blackboard) {
-                console.log('start');
-            },
-
-            end: function (blackboard) {
-                console.log('end');
-            },
-
             run: function (blackboard) {
-                const range = props.highValue - props.lowValue + 1;
-                const result = Math.floor(Math.random() * range) + props.lowValue;
-                console.log(`RandomRollTask: ${this.name}, rolled ${props.lowValue}-${props.highValue}: result ${props.target}`);
-                if (result >= props.target) {
-                    if (props.successAction) {
-                        props.successAction(blackboard);
-                    }
-                    return SUCCESS;
+                const data = this.config.data;
+                const range = data.high - data.low + 1;
+                const rand = Math.random();
+                const roll = Math.floor(rand * range) + data.low;
+                console.log(`Random roll ${data.low}-${data.high}, target ${data.target}, result ${roll}`);
+
+                let resultActions = null;
+                let result = SUCCESS;
+                if (roll >= data.target) {
+                    resultActions = this.config.yes
+                    result = SUCCESS;
                 } else {
-                    if (props.failureAction) {
-                        props.failureAction(blackboard);
-                    }
-                    return FAILURE;
+                    resultActions = this.config.no
+                    result = FAILURE;
                 }
+
+                if (resultActions) {
+                    if (resultActions.set_vars) {
+                        for (const [key, value] of Object.entries(resultActions.set_vars)) {
+                            blackboard.vars[key] = Math.max(Math.min(value, 100), -1);
+                        }
+                    }
+                    if (resultActions.add_scenarios) {
+                        blackboard.scenarios.push(...resultActions.add_scenarios)
+                    }
+                }
+
+                return result;
             },
 
             ...props
