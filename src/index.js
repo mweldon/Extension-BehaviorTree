@@ -55,6 +55,8 @@ window['BehaviorTree'] = async (coreChat) => {
         substituteParams
     } = SillyTavern.getContext();
 
+    setExtensionPrompt(MODULE_NAME, '', 1, settings.chatDepth);
+
     if (!settings.enabled) {
         return;
     }
