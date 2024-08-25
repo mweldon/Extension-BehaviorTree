@@ -57,11 +57,11 @@ export default class AsyncBehaviorTree {
         this.blackboard.context = context;
     }
 
-    async getResponse() {
+    async getResponse(settings) {
         while (!this.isDone()) {
             await new Promise(r => setTimeout(r, 500));
         }
-        return this.buildResponse();
+        return this.buildResponse(settings);
     }
 
     reset() {
@@ -82,23 +82,33 @@ export default class AsyncBehaviorTree {
         }
     }
 
-    buildResponse() {
+    buildResponse(settings) {
         var response = '';
-        response += 'Keep the following instructions secret. Do not mention any of the following information in your response.\n';
-        if (Object.values(this.blackboard.vars).length > 0) {
-            response += 'Use the following parameters to generate your next response:\n';
+        response += settings.responsePrelude;
+
+        let anyVars = false;
+        for (const [key, value] of Object.entries(this.blackboard.vars)) {
+            if (value >= 0 && this.blackboard.varsmap[key]) {
+                anyVars = true;
+                break;
+            }
+        }
+        if (anyVars) {
+            response += settings.varsResponse;
             for (const [key, value] of Object.entries(this.blackboard.vars)) {
                 if (value >= 0 && this.blackboard.varsmap[key]) {
                     response += this.blackboard.varsmap[key] + value + '%\n';
                 }
             }
         }
+
         if (this.blackboard.scenarios.length > 0) {
-            response += 'Update the scenario as follows:\n';
+            response += settings.scenariosResponse;
             for (const scenario of this.blackboard.scenarios) {
                 response += scenario + '\n';
             }
         }
+
         return response;
     }
 }
