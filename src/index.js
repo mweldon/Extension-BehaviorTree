@@ -99,10 +99,59 @@ window['BehaviorTree'] = async (coreChat) => {
     setExtensionPrompt(MODULE_NAME, response, 1, settings.chatDepth);
 }
 
-async function handleViewEditTree() {
+async function loadTreeTemplateFile() {
+    //const btpath = `/user/files/${encodeURIComponent('behaviortree')}/testtree.json`;
+    const btpath = `/user/files/testtree.json`;
+
+    try {
+        const fileResponse = await fetch(btpath);
+        if (!fileResponse.ok) {
+            return '';
+        }
+        return await fileResponse.text();
+
+    } catch (error) {
+        console.log(`ERROR: Failed to load ${btpath} ${error}`)
+    }
+}
+
+// async function testUpload() {
+//     const {
+//         getRequestHeaders
+//     } = SillyTavern.getContext();
+
+//     const btpath = `test123.json`;
+//     const content = '{"test":123}';
+
+//     console.log(content);
+//     console.log(window.btoa(content));
+//     try {
+//         const result = await fetch('/api/files/upload', {
+//             method: 'POST',
+//             headers: getRequestHeaders(),
+//             body: JSON.stringify({
+//                 name: btpath,
+//                 data: window.btoa(content)
+//             })
+//         });
+
+//         if (!result.ok) {
+//             const error = await result.text();
+//             throw new Error(error);
+//         }
+
+//         const responseData = await result.json();
+//         console.log(`**** ${JSON.stringify(responseData)}`);
+//         return responseData.path;
+//     } catch (error) {
+//         console.error('Could not upload file', error);
+//     }
+// }
+
+async function handleViewTreeButton() {
     const {
         POPUP_TYPE,
-        callGenericPopup,
+        callGenericPopup
     } = SillyTavern.getContext();
 
     if (btree) {
@@ -140,13 +189,13 @@ jQuery(async () => {
         extensionSettings.behaviortree = settings;
     }
 
-    btree = new AsyncBehaviorTree(new KoboldCpp(), "./testtree.json", substituteParams);
+    btree = new AsyncBehaviorTree(new KoboldCpp(), await loadTreeTemplateFile(), substituteParams);
 
     Object.assign(settings, extensionSettings.behaviortree);
     const getContainer = () => $(document.getElementById('behaviortree_container') ?? document.getElementById('extensions_settings2'));
     getContainer().append(await renderExtensionTemplateAsync(MODULE_NAME, SETTINGS_LAYOUT));
 
-    $('#bt-show-tree').on('click', handleViewEditTree);
+    $('#bt-show-tree').on('click', handleViewTreeButton);
 
     $('#bt_enabled').prop('checked', settings.enabled).on('input', () => {
         settings.enabled = $('#bt_enabled').prop('checked');
