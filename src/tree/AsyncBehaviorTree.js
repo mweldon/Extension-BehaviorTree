@@ -19,18 +19,13 @@ export default class AsyncBehaviorTree {
             running: null
         };
 
-        const importer = this.createBehaviorTreeImporter();
+        this.importer = this.createBehaviorTreeImporter();
 
         // TODO: Load file
 
         //var treeFileObject = JSON.parse(this.readFile(treefile));
-        var treeFileObject = testtree;
-        this.tree = importer.parse(treeFileObject);
-
-        this.bTree = new BehaviorTree({
-            tree: this.tree,
-            blackboard: this.blackboard
-        });
+        const template = JSON.stringify(testtree, null, 3);
+        this.setTreeTemplate(template);
     }
 
     // readFile(file) {
@@ -51,6 +46,21 @@ export default class AsyncBehaviorTree {
         importer.defineType("set_vars", SetVarsTask);
         importer.defineType("random_roll", RandomRollTask);
         return importer;
+    }
+
+    getTreeTemplate() {
+        return this.treeTemplate;
+    }
+
+    setTreeTemplate(treeTemplate) {
+        if (!this.bTree || this.treeTemplate !== treeTemplate) {
+            this.treeTemplate = treeTemplate;
+            this.tree = this.importer.parse(JSON.parse(treeTemplate));
+            this.bTree = new BehaviorTree({
+                tree: this.tree,
+                blackboard: this.blackboard
+            });
+        }
     }
 
     setContext(context) {

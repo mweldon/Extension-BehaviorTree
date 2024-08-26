@@ -1,3 +1,4 @@
+import './style.css';
 import AsyncBehaviorTree from './tree/AsyncBehaviorTree.js';
 import KoboldCpp from './engine/KoboldCpp.js';
 
@@ -98,6 +99,33 @@ window['BehaviorTree'] = async (coreChat) => {
     setExtensionPrompt(MODULE_NAME, response, 1, settings.chatDepth);
 }
 
+async function handleViewEditTree() {
+    const {
+        POPUP_TYPE,
+        callGenericPopup,
+    } = SillyTavern.getContext();
+
+    if (btree) {
+        const textarea = $('<textarea></textarea>')
+            .attr('id', 'st_settings_show_tree')
+            .addClass('text_pole')
+            .val(btree.getTreeTemplate());
+
+        const confirm = await callGenericPopup(textarea, POPUP_TYPE.CONFIRM, '', {
+            wide: true,
+            large: true,
+            allowHorizontalScrolling: true,
+            okButton: 'Save',
+            cancelButton: 'Cancel'
+        });
+
+        if (confirm) {
+            console.log('Behavior Tree initializing tree');
+            btree.setTreeTemplate(textarea.val());
+        }
+    }
+}
+
 jQuery(async () => {
     const {
         extensionSettings,
@@ -112,9 +140,13 @@ jQuery(async () => {
         extensionSettings.behaviortree = settings;
     }
 
+    btree = new AsyncBehaviorTree(new KoboldCpp(), "./testtree.json", substituteParams);
+
     Object.assign(settings, extensionSettings.behaviortree);
     const getContainer = () => $(document.getElementById('behaviortree_container') ?? document.getElementById('extensions_settings2'));
     getContainer().append(await renderExtensionTemplateAsync(MODULE_NAME, SETTINGS_LAYOUT));
+
+    $('#bt-show-tree').on('click', handleViewEditTree);
 
     $('#bt_enabled').prop('checked', settings.enabled).on('input', () => {
         settings.enabled = $('#bt_enabled').prop('checked');
@@ -188,6 +220,4 @@ jQuery(async () => {
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
-
-    btree = new AsyncBehaviorTree(new KoboldCpp(), "./testtree.json", substituteParams);
 });
