@@ -14,6 +14,10 @@ export class QueryTask extends Task {
             },
 
             run: function (blackboard) {
+                if (!this.config.data) {
+                    return SUCCESS;
+                }
+                
                 if (!this.isRunning && !this.isFinished) {
                     this.isRunning = true;
 

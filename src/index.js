@@ -1,5 +1,5 @@
 import './style.css';
-import AsyncBehaviorTree from './tree/AsyncBehaviorTree.js';
+import { AsyncBehaviorTree, DefaultTree } from './tree/AsyncBehaviorTree.js';
 import KoboldCpp from './engine/KoboldCpp.js';
 
 const MODULE_NAME = 'third-party/Extension-BehaviorTree';
@@ -23,13 +23,26 @@ let btree = null;
 let lastResponse = '';
 let lastChatString = '';
 
-function updateCounter(newValue) {
+function getCharacterTreeFilename() {
+    const {
+        characterId,
+        name2
+    } = SillyTavern.getContext();
+
+    if (name2 && characterId) {
+        return `bt_${characterId}_${name2}.json`;
+    } else {
+        return '';
+    }
+}
+
+function updateTurnCounter(newValue) {
     const {
         saveSettingsDebounced,
     } = SillyTavern.getContext();
 
     settings.executionCounter = newValue;
-    $('#bt-counter').val(settings.executionCounter)
+    $('#bt_turn_counter').val(settings.executionCounter)
     saveSettingsDebounced();
 }
 
@@ -43,7 +56,12 @@ function buildChatForQuery(coreChat) {
     return chatString;
 }
 
+// Run a full traversal of the BT
 async function executeBehaviorTree(chatString) {
+    if (!btree) {
+        return;
+    }
+
     try {
         btree.reset();
         btree.setContext(chatString);
@@ -56,6 +74,7 @@ async function executeBehaviorTree(chatString) {
     }
 }
 
+// Runs before generation
 window['BehaviorTree'] = async (coreChat) => {
     const {
         setExtensionPrompt,
@@ -68,15 +87,8 @@ window['BehaviorTree'] = async (coreChat) => {
         return;
     }
 
-    if (btree == null) {
+    if (!btree) {
         return;
-    }
-
-    if (settings.executionCounter != 1) {
-        updateCounter(settings.executionCounter - 1)
-        return;
-    } else {
-        updateCounter(settings.executionFrequency)
     }
 
     const chatString = buildChatForQuery(coreChat);
@@ -86,6 +98,13 @@ window['BehaviorTree'] = async (coreChat) => {
         console.log(`Behavior Tree using cached result:\n${lastResponse}`);
         setExtensionPrompt(MODULE_NAME, lastResponse, 1, settings.chatDepth);
         return;
+    }
+
+    if (settings.executionCounter != 1) {
+        updateTurnCounter(settings.executionCounter - 1)
+        return;
+    } else {
+        updateTurnCounter(settings.executionFrequency)
     }
 
     console.log('Running Behavior Tree');
@@ -99,10 +118,9 @@ window['BehaviorTree'] = async (coreChat) => {
     setExtensionPrompt(MODULE_NAME, response, 1, settings.chatDepth);
 }
 
-async function loadTreeTemplateFile() {
-    //const btpath = `/user/files/${encodeURIComponent('behaviortree')}/testtree.json`;
-    const btpath = `/user/files/testtree.json`;
-
+async function loadTreeTemplateFile(filename) {
+    console.log(`Loading: ${filename}`);
+    const btpath = `/user/files/${filename}`;
     try {
         const fileResponse = await fetch(btpath);
         if (!fileResponse.ok) {
@@ -115,68 +133,137 @@ async function loadTreeTemplateFile() {
     }
 }
 
-// async function testUpload() {
-//     const {
-//         getRequestHeaders
-//     } = SillyTavern.getContext();
+async function saveTreeTemplateFile(filename, content) {
+    const {
+        getRequestHeaders
+    } = SillyTavern.getContext();
 
-//     const btpath = `test123.json`;
-//     const content = '{"test":123}';
+    console.log(`Saving: ${filename}`);
+    try {
+        const result = await fetch('/api/files/upload', {
+            method: 'POST',
+            headers: getRequestHeaders(),
+            body: JSON.stringify({
+                name: filename,
+                data: content
+            })
+        });
 
-//     console.log(content);
-//     console.log(window.btoa(content));
-//     try {
-//         const result = await fetch('/api/files/upload', {
-//             method: 'POST',
-//             headers: getRequestHeaders(),
-//             body: JSON.stringify({
-//                 name: btpath,
-//                 data: window.btoa(content)
-//             })
-//         });
+        if (!result.ok) {
+            const error = await result.text();
+            throw new Error(error);
+        }
+    } catch (error) {
+        console.error('Could not upload file', error);
+    }
+}
 
-//         if (!result.ok) {
-//             const error = await result.text();
-//             throw new Error(error);
-//         }
+function getBase64Async(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function () {
+            resolve(String(reader.result));
+        };
+        reader.onerror = function (error) {
+            reject(error);
+        };
+    });
+}
 
-//         const responseData = await result.json();
-//         console.log(`**** ${JSON.stringify(responseData)}`);
-//         return responseData.path;
-//     } catch (error) {
-//         console.error('Could not upload file', error);
-//     }
-// }
+async function handleImportTreeButton(e) {
+    const file = e.target.files[0];
+    const form = e.target.form;
+
+    if (!file || file.type !== 'application/json') {
+        form && form.reset();
+        return;
+    }
+
+    const fileData = await getBase64Async(file);
+    const base64Data = fileData.split(',')[1];
+
+    const treeTemplate = window.atob(base64Data);
+    if (btree) {
+        btree.setTreeTemplate(treeTemplate);
+        console.log(`Behavior Tree initialized: ${btree.getTreeName()}`);
+
+        const templateFileName = getCharacterTreeFilename();
+        if (templateFileName) {
+            await saveTreeTemplateFile(templateFileName, base64Data);
+        }
+        $("#bt_current_tree_filename").text(btree.getTreeName());
+    }
+
+    form && form.reset();
+}
 
 async function handleViewTreeButton() {
     const {
         POPUP_TYPE,
-        callGenericPopup
+        callGenericPopup,
     } = SillyTavern.getContext();
 
-    if (btree) {
-        const textarea = $('<textarea></textarea>')
-            .attr('id', 'st_settings_show_tree')
-            .addClass('text_pole')
-            .val(btree.getTreeTemplate());
+    if (!btree) {
+        return;
+    }
 
-        const confirm = await callGenericPopup(textarea, POPUP_TYPE.CONFIRM, '', {
-            wide: true,
-            large: true,
-            allowHorizontalScrolling: true,
-            okButton: 'Save',
-            cancelButton: 'Cancel'
-        });
+    const textarea = $('<textarea></textarea>')
+        .attr('id', 'st_settings_show_tree')
+        .addClass('flex-container')
+        .addClass('flexFlowColumn')
+        .addClass('justifyCenter')
+        .addClass('alignitemscenter')
+        .val(btree.getTreeTemplate());
 
-        if (confirm) {
-            console.log('Behavior Tree initializing tree');
+    const confirm = await callGenericPopup(textarea, POPUP_TYPE.CONFIRM, '', {
+        wide: true,
+        large: true,
+        allowHorizontalScrolling: true,
+        okButton: 'Save',
+        cancelButton: 'Cancel'
+    });
+
+    if (confirm) {
+        if (btree) {
             btree.setTreeTemplate(textarea.val());
+            console.log(`Behavior Tree initialized: ${btree.getTreeName()}`);
+
+            const templateFileName = getCharacterTreeFilename();
+            if (templateFileName) {
+                const base64Data = window.btoa(textarea.val());
+                await saveTreeTemplateFile(templateFileName, base64Data);
+            }
+            $("#bt_current_tree_filename").text(btree.getTreeName());
         }
     }
 }
 
+// Load a file for current character if it exists. Then set up the btree and update the UI.
+async function tryLoadTreeForCharacter() {
+    if (!btree) {
+        return;
+    }
+
+    const templateFileName = getCharacterTreeFilename();
+    if (templateFileName) {
+        const treeTemplate = await loadTreeTemplateFile(templateFileName);
+
+        if (treeTemplate) {
+            btree.setTreeTemplate(treeTemplate);
+        } else {
+            btree.setTreeTemplate(DefaultTree);
+        }
+        console.log(`Behavior Tree initialized: ${btree.getTreeName()}`);
+    }
+    $("#bt_current_tree_filename").text(btree.getTreeName());
+}
+
+// Runs at startup
 jQuery(async () => {
     const {
+        eventSource,
+        eventTypes,
         extensionSettings,
         renderExtensionTemplateAsync,
         saveSettingsDebounced,
@@ -189,84 +276,95 @@ jQuery(async () => {
         extensionSettings.behaviortree = settings;
     }
 
-    btree = new AsyncBehaviorTree(new KoboldCpp(), await loadTreeTemplateFile(), substituteParams);
-
     Object.assign(settings, extensionSettings.behaviortree);
     const getContainer = () => $(document.getElementById('behaviortree_container') ?? document.getElementById('extensions_settings2'));
     getContainer().append(await renderExtensionTemplateAsync(MODULE_NAME, SETTINGS_LAYOUT));
 
-    $('#bt-show-tree').on('click', handleViewTreeButton);
+    eventSource.on(eventTypes.CHAT_CHANGED, tryLoadTreeForCharacter);
+
+    $('#bt_view_tree_button').on('click', () => {
+        $('#bt_view_tree').trigger('click');
+    });
+    $('#bt_view_tree').on('click', handleViewTreeButton);
+
+    $('#bt_load_tree_button').on('click', () => {
+        $('#bt_load_tree').trigger('click');
+    });
+    $('#bt_load_tree').on('change', handleImportTreeButton);
 
     $('#bt_enabled').prop('checked', settings.enabled).on('input', () => {
         settings.enabled = $('#bt_enabled').prop('checked');
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
-    $('#bt-chat-depth').val(settings.chatDepth).on('input', () => {
-        settings.chatDepth = Number($('#bt-chat-depth').val());
+    $('#bt_chat_depth').val(settings.chatDepth).on('input', () => {
+        settings.chatDepth = Number($('#bt_chat_depth').val());
         if (settings.chatDepth < 1) {
-            $('#bt-parameter-warning').show();
+            $('#bt_parameter_warning').show();
         } else {
-            $('#bt-parameter-warning').hide();
+            $('#bt_parameter_warning').hide();
         }
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
-    $('#bt-execution-frequency').val(settings.executionFrequency).on('input', () => {
-        settings.executionFrequency = Number($('#bt-execution-frequency').val());
+    $('#bt_execution_frequency').val(settings.executionFrequency).on('input', () => {
+        settings.executionFrequency = Number($('#bt_execution_frequency').val());
         settings.executionCounter = Math.min(settings.executionCounter, settings.executionFrequency);
-        $('#bt-counter').val(settings.executionCounter)
+        $('#bt_turn_counter').val(settings.executionCounter)
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
-    $('#bt-counter').val(settings.executionCounter).on('input', () => {
-        settings.executionCounter = Number($('#bt-counter').val());
+    $('#bt_turn_counter').val(settings.executionCounter).on('input', () => {
+        settings.executionCounter = Number($('#bt_turn_counter').val());
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
-    $('#bt-chat-length').val(settings.chatQueryLength).on('input', () => {
-        settings.chatQueryLength = Number($('#bt-chat-length').val());
+    $('#bt_chat_length').val(settings.chatQueryLength).on('input', () => {
+        settings.chatQueryLength = Number($('#bt_chat_length').val());
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
 
     if (settings.chatDepth < 1) {
-        $('#bt-parameter-warning').show();
+        $('#bt_parameter_warning').show();
     } else {
-        $('#bt-parameter-warning').hide();
+        $('#bt_parameter_warning').hide();
     }
 
-    $('#bt-response-prelude').val(settings.responsePrelude).on('input', () => {
-        settings.responsePrelude = $('#bt-response-prelude').val();
+    $('#bt_response_prelude').val(settings.responsePrelude).on('input', () => {
+        settings.responsePrelude = $('#bt_response_prelude').val();
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
-    $("#bt-response-prelude-undo").on('click', () => {
-        $('#bt-response-prelude').val(DEFAULT_RESPONSE_PRELUDE);
+    $("#bt_response_prelude_undo").on('click', () => {
+        $('#bt_response_prelude').val(DEFAULT_RESPONSE_PRELUDE);
         settings.responsePrelude = DEFAULT_RESPONSE_PRELUDE;
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
-    $('#bt-vars-response').val(settings.varsResponse).on('input', () => {
-        settings.varsResponse = $('#bt-vars-response').val();
+    $('#bt_vars_response').val(settings.varsResponse).on('input', () => {
+        settings.varsResponse = $('#bt_vars_response').val();
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
-    $("#bt-vars-response-undo").on('click', () => {
-        $('#bt-vars-response').val(DEFAULT_VARS_RESPONSE);
+    $("#bt_vars_response_undo").on('click', () => {
+        $('#bt_vars_response').val(DEFAULT_VARS_RESPONSE);
         settings.varsResponse = DEFAULT_VARS_RESPONSE;
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
-    $('#bt-scenarios-response').val(settings.scenariosResponse).on('input', () => {
-        settings.scenariosResponse = $('#bt-scenarios-response').val();
+    $('#bt_scenarios_response').val(settings.scenariosResponse).on('input', () => {
+        settings.scenariosResponse = $('#bt_scenarios_response').val();
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
-    $("#bt-scenarios-response-undo").on('click', () => {
-        $('#bt-scenarios-response').val(DEFAULT_SCENARIOS_RESPONSE);
+    $("#bt_scenarios_response_undo").on('click', () => {
+        $('#bt_scenarios_response').val(DEFAULT_SCENARIOS_RESPONSE);
         settings.scenariosResponse = DEFAULT_SCENARIOS_RESPONSE;
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
     });
+
+    btree = new AsyncBehaviorTree(new KoboldCpp(), substituteParams);
+    tryLoadTreeForCharacter()
 });

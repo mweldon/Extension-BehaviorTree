@@ -1,5 +1,10 @@
 #st_settings_show_tree {
     height: 100%;
+    width: 100%;
     resize: none;
     font-family: Consolas, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
+}
+
+#bt_current_tree_filename {
+    color: orange
 }

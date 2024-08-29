@@ -5,8 +5,8 @@ import { CreateVarsTask } from './CreateVarsTask.js';
 import { QueryTask } from './QueryTask.js';
 import { RandomRollTask } from './RandomRollTask.js';
 
-export default class AsyncBehaviorTree {
-    constructor(engine, treeTemplate, substituteParams) {
+export class AsyncBehaviorTree {
+    constructor(engine, substituteParams) {
         this.blackboard = {
             engine: engine,
             substituteParams: substituteParams,
@@ -19,7 +19,7 @@ export default class AsyncBehaviorTree {
 
         this.importer = this.createBehaviorTreeImporter();
 
-        this.setTreeTemplate(treeTemplate);
+        this.setTreeTemplate(DefaultTree);
     }
 
     createBehaviorTreeImporter() {
@@ -45,6 +45,10 @@ export default class AsyncBehaviorTree {
                 blackboard: this.blackboard
             });
         }
+    }
+
+    getTreeName() {
+        return this.tree.name;
     }
 
     setContext(context) {
@@ -78,7 +82,6 @@ export default class AsyncBehaviorTree {
 
     buildResponse(settings) {
         var response = '';
-        response += settings.responsePrelude;
 
         let anyVars = false;
         for (const [key, value] of Object.entries(this.blackboard.vars)) {
@@ -87,6 +90,11 @@ export default class AsyncBehaviorTree {
                 break;
             }
         }
+
+        if (anyVars || this.blackboard.scenarios.length > 0) {
+            response += settings.responsePrelude;
+        }
+
         if (anyVars) {
             response += settings.varsResponse;
             for (const [key, value] of Object.entries(this.blackboard.vars)) {
@@ -107,3 +115,72 @@ export default class AsyncBehaviorTree {
     }
 }
 
+export const DefaultTree = "{\n" +
+"   \"type\":\"sequence\",\n" +
+"   \"name\":\"Default tree\",\n" +
+"   \"nodes\":[\n" +
+"      {\n" +
+"         \"type\":\"create_vars\",\n" +
+"         \"data\":{\n" +
+"            \"var1\":{\n" +
+"               \"value\":-1,\n" +
+"               \"prompt\":\"How much {{char}} tries to do something: \"\n" +
+"            },\n" +
+"            \"var2\":{\n" +
+"               \"value\":-1,\n" +
+"               \"prompt\":\"Likelihood that {{char}} will act a certain way: \"\n" +
+"            }\n" +
+"         }\n" +
+"      },\n" +
+"      {\n" +
+"         \"type\":\"sequence\",\n" +
+"         \"name\":\"Check some stuff\",\n" +
+"         \"nodes\":[\n" +
+"            {\n" +
+"               \"type\":\"random_roll\",\n" +
+"               \"data\":{\n" +
+"                  \"low\":1,\n" +
+"                  \"high\":20,\n" +
+"                  \"target\":13\n" +
+"               },\n" +
+"               \"yes\":{\n" +
+"                  \"set_vars\":{\n" +
+"                     \n" +
+"                  },\n" +
+"                  \"add_scenarios\":[\n" +
+"                     \n" +
+"                  ]\n" +
+"               },\n" +
+"               \"no\":{\n" +
+"                  \"set_vars\":{\n" +
+"                     \n" +
+"                  },\n" +
+"                  \"add_scenarios\":[\n" +
+"                     \n" +
+"                  ]\n" +
+"               }\n" +
+"            },\n" +
+"            {\n" +
+"               \"type\":\"query\",\n" +
+"               \"data\":\"\",\n" +
+"               \"yes\":{\n" +
+"                  \"set_vars\":{\n" +
+"                     \n" +
+"                  },\n" +
+"                  \"add_scenarios\":[\n" +
+"                     \n" +
+"                  ]\n" +
+"               },\n" +
+"               \"no\":{\n" +
+"                  \"set_vars\":{\n" +
+"                     \n" +
+"                  },\n" +
+"                  \"add_scenarios\":[\n" +
+"                     \n" +
+"                  ]\n" +
+"               }\n" +
+"            }\n" +
+"         ]\n" +
+"      }\n" +
+"   ]\n" +
+"}"
