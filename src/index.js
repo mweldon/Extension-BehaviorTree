@@ -121,16 +121,17 @@ window['BehaviorTree'] = async (coreChat) => {
 async function loadTreeTemplateFile(filename) {
     console.log(`Loading: ${filename}`);
     const btpath = `/user/files/${filename}`;
+    let result = '';
     try {
         const fileResponse = await fetch(btpath);
-        if (!fileResponse.ok) {
-            return '';
+        if (fileResponse.ok) {
+            result = await fileResponse.text();
         }
-        return await fileResponse.text();
-
     } catch (error) {
         console.log(`ERROR: Failed to load ${btpath} ${error}`)
     }
+
+    return result;
 }
 
 async function saveTreeTemplateFile(filename, content) {
@@ -150,8 +151,7 @@ async function saveTreeTemplateFile(filename, content) {
         });
 
         if (!result.ok) {
-            const error = await result.text();
-            throw new Error(error);
+            console.error(await result.text());
         }
     } catch (error) {
         console.error('Could not upload file', error);
@@ -171,12 +171,43 @@ function getBase64Async(file) {
     });
 }
 
+function enableLoadSave(isEnabled) {
+    if (isEnabled) {
+        //console.log("save enabled");
+        $('#bt_view_tree_button').on('click', () => {
+            $('#bt_view_tree').trigger('click');
+        });
+        $('#bt_view_tree').on('click', handleViewTreeButton);
+
+        $('#bt_load_tree_button').on('click', () => {
+            $('#bt_load_tree').trigger('click');
+        });
+        $('#bt_load_tree').on('change', handleImportTreeButton);
+
+        $('#bt_restore_tree_button').on('click', () => {
+            $('#bt_restore_tree').trigger('click');
+        });
+        $('#bt_restore_tree').on('click', handleRestoreTreeButton);
+    } else {
+        //console.log("save disabled");
+        $('#bt_view_tree_button').on('click');
+        $('#bt_view_tree').off("click");
+        $('#bt_load_tree_button').off("click");
+        $('#bt_load_tree').off("change");
+        $('#bt_restore_tree_button').off("click");
+        $('#bt_restore_tree').off("click");
+    }
+}
+
 async function handleImportTreeButton(e) {
+    enableLoadSave(false);
+
     const file = e.target.files[0];
     const form = e.target.form;
 
     if (!file || file.type !== 'application/json') {
         form && form.reset();
+        $(this).val('');
         return;
     }
 
@@ -196,6 +227,8 @@ async function handleImportTreeButton(e) {
     }
 
     form && form.reset();
+    $(this).val('');
+    enableLoadSave(true);
 }
 
 async function handleViewTreeButton() {
@@ -207,6 +240,8 @@ async function handleViewTreeButton() {
     if (!btree) {
         return;
     }
+
+    enableLoadSave(false);
 
     const textarea = $('<textarea></textarea>')
         .attr('id', 'st_settings_show_tree')
@@ -225,18 +260,47 @@ async function handleViewTreeButton() {
     });
 
     if (confirm) {
-        if (btree) {
-            btree.setTreeTemplate(textarea.val());
-            console.log(`Behavior Tree initialized: ${btree.getTreeName()}`);
+        btree.setTreeTemplate(textarea.val());
+        console.log(`Behavior Tree initialized: ${btree.getTreeName()}`);
 
-            const templateFileName = getCharacterTreeFilename();
-            if (templateFileName) {
-                const base64Data = window.btoa(textarea.val());
-                await saveTreeTemplateFile(templateFileName, base64Data);
-            }
-            $("#bt_current_tree_filename").text(btree.getTreeName());
+        const templateFileName = getCharacterTreeFilename();
+        if (templateFileName) {
+            const base64Data = window.btoa(textarea.val());
+            await saveTreeTemplateFile(templateFileName, base64Data);
         }
+        $("#bt_current_tree_filename").text(btree.getTreeName());
     }
+
+    enableLoadSave(true);
+}
+
+async function handleRestoreTreeButton() {
+    const {
+        POPUP_TYPE,
+        callGenericPopup,
+    } = SillyTavern.getContext();
+
+    if (!btree) {
+        return;
+    }
+
+    enableLoadSave(false);
+
+    const confirm = await callGenericPopup("Do you want to overwrite the behavior tree with an empty tree?", POPUP_TYPE.CONFIRM);
+
+    if (confirm) {
+        btree.setTreeTemplate(DefaultTree);
+        console.log(`Behavior Tree initialized: ${btree.getTreeName()}`);
+
+        const templateFileName = getCharacterTreeFilename();
+        if (templateFileName) {
+            const base64Data = window.btoa(DefaultTree);
+            await saveTreeTemplateFile(templateFileName, base64Data);
+        }
+        $("#bt_current_tree_filename").text(btree.getTreeName());
+    }
+
+    enableLoadSave(true);
 }
 
 // Load a file for current character if it exists. Then set up the btree and update the UI.
@@ -282,15 +346,7 @@ jQuery(async () => {
 
     eventSource.on(eventTypes.CHAT_CHANGED, tryLoadTreeForCharacter);
 
-    $('#bt_view_tree_button').on('click', () => {
-        $('#bt_view_tree').trigger('click');
-    });
-    $('#bt_view_tree').on('click', handleViewTreeButton);
-
-    $('#bt_load_tree_button').on('click', () => {
-        $('#bt_load_tree').trigger('click');
-    });
-    $('#bt_load_tree').on('change', handleImportTreeButton);
+    enableLoadSave(true);
 
     $('#bt_enabled').prop('checked', settings.enabled).on('input', () => {
         settings.enabled = $('#bt_enabled').prop('checked');
