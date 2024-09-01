@@ -1,4 +1,4 @@
-<div class="bt_settings">
+<div id="bt_settings">
     <div class="inline-drawer">
         <div class="inline-drawer-toggle inline-drawer-header">
             <b>BehaviorTree</b>
@@ -9,6 +9,20 @@
                 <input id="bt_enabled" type="checkbox" class="checkbox">
                 Enabled
             </label>
+
+            <label for="bt_query_api" data-i18n="ext_sum_with">Query API:</label>
+            <select id="bt_query_api">
+                <option value="main" data-i18n="ext_sum_main_api">Main API</option>
+                <option value="koboldcpp">KoboldCpp</option>
+            </select><br>
+
+            <div data-bt-query-source="koboldcpp" class="flex-container">
+                <div class="flex1">
+                    <h4 data-i18n="API url">API URL</h4>
+                    <small data-i18n="Example: 127.0.0.1:5001">Example: http://127.0.0.1:5001</small>
+                    <input id="bt_koboldcpp_api_url_text" class="text_pole" value="" >
+                </div>
+           </div>
 
             <div class="flex-container">
                 <div id="bt_view_tree_button" class="menu_button" title="View tree">

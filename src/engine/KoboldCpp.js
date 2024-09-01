@@ -3,20 +3,22 @@ import axios from 'axios';
 const INSTRUCTION_WRAPPER = '### Instruction:';
 const RESPONSE_WRAPPER = '### Response:';
 const CONTEXT_PREAMBLE = 'You are taking the role of a copy editor for fiction writing. ' +
-    'I am going to show you a role-play chat transcript and then I will ask you a series ' +
-    'of questions. Please answer each question without prejudice or bias. Keep answers brief ' +
+    'I am going to show you a role-play chat transcript and then I will ask you a question. ' +
+    'Please answer the question without prejudice or bias. Keep answers brief ' +
     'and do not add additional commentary. Here is the transcript:';
-const QUERY_PREAMBLE = 'Please answer the following question(s) with a YES/NO and without further '
+const QUERY_PREAMBLE = 'Please answer the following question(s) with a YES/NO and without further ' +
     'explanation. If there is not enough information to answer, try to provide your best estimation.';
 
-const URL = 'http://localhost:5001/api/v1/generate';
+const DEFAULT_URL = 'http://localhost:5001';
+const API_PATH = '/api/v1/generate';
 
 export default class KoboldCpp {
-    constructor() {
+    constructor(url = null) {
+        this.url = url ?? DEFAULT_URL;
         this.args = {
-            'max_context_length': 16384,
+            'max_context_length': 4096,
             'max_length': 10,
-            'prompt': "Hello",
+            'prompt': 'Hello',
             'quiet': true,
             'rep_pen': 1,
             'rep_pen_range': 0,
@@ -32,9 +34,9 @@ export default class KoboldCpp {
     }
 
     async performQuery(context, query) {
-        this.args.prompt = this.createContext(context, query);
+        this.args.prompt = this.createPrompt(context, query);
 
-        const url = URL;
+        const url = this.url + API_PATH;
         const args = this.args;
         const response = await axios.post(url, args)
             .catch(function (error) {
@@ -52,7 +54,7 @@ export default class KoboldCpp {
         return await this.getQueryResponse(response);
     }
 
-    createContext(context, query) {
+    createPrompt(context, query) {
         var result = '\n' + INSTRUCTION_WRAPPER + '\n' + CONTEXT_PREAMBLE + '\n\n';
         result += context + '\n\n';
         result += QUERY_PREAMBLE + '\n\n';
@@ -62,7 +64,6 @@ export default class KoboldCpp {
     }
 
     async getQueryResponse(response) {
-
         if (response) {
             const results = response.data.results;
             const generatedText = (results.length > 0) ? results[0].text : '';
@@ -73,7 +74,6 @@ export default class KoboldCpp {
                 return 'NO';
             }
         }
-
         return 'UNKNOWN';
     }
 

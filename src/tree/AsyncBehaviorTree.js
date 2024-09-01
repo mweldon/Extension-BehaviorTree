@@ -76,6 +76,10 @@ export class AsyncBehaviorTree {
         return this.tree.name;
     }
 
+    setEngine(engine) {
+        this.blackboard.engine = engine;
+    }
+
     setContext(context) {
         this.blackboard.context = context;
     }

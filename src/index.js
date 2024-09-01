@@ -1,6 +1,7 @@
 import './style.css';
 import { AsyncBehaviorTree, DefaultTree } from './tree/AsyncBehaviorTree.js';
 import KoboldCpp from './engine/KoboldCpp.js';
+import MainApi from './engine/MainApi.js';
 
 const MODULE_NAME = 'third-party/Extension-BehaviorTree';
 const SETTINGS_LAYOUT = 'src/settings';
@@ -17,6 +18,8 @@ const settings = {
     responsePrelude: DEFAULT_RESPONSE_PRELUDE,
     varsResponse: DEFAULT_VARS_RESPONSE,
     scenariosResponse: DEFAULT_SCENARIOS_RESPONSE,
+    backendApi: 'koboldcpp',
+    koboldCppEndpoint: 'http://127.0.0.1:5001',
 };
 
 let btree = null;
@@ -126,16 +129,16 @@ window['BehaviorTree'] = async (coreChat) => {
 }
 
 async function loadTreeTemplateFile(filename) {
-    console.log(`Loading: ${filename}`);
     const btpath = `/user/files/${filename}`;
     let result = '';
     try {
+        console.log(`Loading: ${btpath}`);
         const fileResponse = await fetch(btpath);
         if (fileResponse.ok) {
             result = await fileResponse.text();
         }
     } catch (error) {
-        console.log(`ERROR: Failed to load ${btpath} ${error}`)
+        console.error(`Error loading ${btpath}:`, error);
     }
 
     return result;
@@ -146,8 +149,8 @@ async function saveTreeTemplateFile(filename, content) {
         getRequestHeaders
     } = SillyTavern.getContext();
 
-    console.log(`Saving: ${filename}`);
     try {
+        console.log(`Saving: ${filename}`);
         const result = await fetch('/api/files/upload', {
             method: 'POST',
             headers: getRequestHeaders(),
@@ -227,9 +230,9 @@ async function handleImportTreeButton(e) {
         return;
     }
 
-    enableLoadSave(false);
-
     try {
+        enableLoadSave(false);
+
         const fileData = await getBase64Async(file);
         const base64Data = fileData.split(',')[1];
 
@@ -237,11 +240,12 @@ async function handleImportTreeButton(e) {
         reloadTreeAndSave(treeTemplate, base64Data);
     } catch (error) {
         console.error('Error saving tree:', error)
+    } finally {
+        enableLoadSave(true);
     }
 
     form && form.reset();
     $(this).val('');
-    enableLoadSave(true);
 }
 
 async function handleViewTreeButton() {
@@ -254,10 +258,8 @@ async function handleViewTreeButton() {
         return;
     }
 
-    enableLoadSave(false);
-
     const textarea = $('<textarea></textarea>')
-        .attr('id', 'st_settings_show_tree')
+        .attr('id', 'bt_settings_show_tree')
         .addClass('flex-container')
         .addClass('flexFlowColumn')
         .addClass('justifyCenter')
@@ -273,14 +275,16 @@ async function handleViewTreeButton() {
     });
 
     try {
+        enableLoadSave(false);
+
         if (editSave) {
             reloadTreeAndSave(textarea.val(), null);
         }
     } catch (error) {
         console.error('Error saving tree:', error)
+    } finally {
+        enableLoadSave(true);
     }
-
-    enableLoadSave(true);
 }
 
 async function handleViewStateButton() {
@@ -293,10 +297,8 @@ async function handleViewStateButton() {
         return;
     }
 
-    enableLoadSave(false);
-
     const textarea = $('<textarea></textarea>')
-        .attr('id', 'st_settings_show_tree')
+        .attr('id', 'bt_settings_show_tree')
         .addClass('flex-container')
         .addClass('flexFlowColumn')
         .addClass('justifyCenter')
@@ -312,6 +314,8 @@ async function handleViewStateButton() {
     });
 
     try {
+        enableLoadSave(false);
+
         if (confirm) {
             lastChatString = null;   // Clear the cached response
 
@@ -319,9 +323,9 @@ async function handleViewStateButton() {
         }
     } catch (error) {
         console.error('Error saving state data:', error)
+    } finally {
+        enableLoadSave(true);
     }
-
-    enableLoadSave(true);
 }
 
 async function handleRestoreTreeButton() {
@@ -334,19 +338,40 @@ async function handleRestoreTreeButton() {
         return;
     }
 
-    enableLoadSave(false);
-
     const confirm = await callGenericPopup("Do you want to overwrite the behavior tree with an empty tree?", POPUP_TYPE.CONFIRM);
 
     try {
+        enableLoadSave(false);
+
         if (confirm) {
             reloadTreeAndSave(DefaultTree, null);
         }
     } catch (error) {
         console.error('Error saving tree:', error)
+    } finally {
+        enableLoadSave(true);
+    }
+}
+
+function setQueryApi(source) {
+    if (!btree) {
+        return;
     }
 
-    enableLoadSave(true);
+    if (source === 'main') {
+        console.log('Setting Main API engine for Behavior Tree');
+        btree.setEngine(new MainApi());
+    } else if (source == 'koboldcpp') {
+        console.log('Setting KoboldCpp engine for Behavior Tree');
+        btree.setEngine(new KoboldCpp(settings.koboldCppEndpoint));
+    }
+}
+
+function switchSourceControls(source) {
+    $('#bt_settings [data-bt-query-source]').each((_, element) => {
+        const sourceElement = element.dataset.btQuerySource.split(',').map(s => s.trim());
+        $(element).toggle(sourceElement.includes(source));
+    });
 }
 
 async function reloadTreeAndSave(treeTemplate, base64Data) {
@@ -406,7 +431,7 @@ jQuery(async () => {
         substituteParams
     } = SillyTavern.getContext();
 
-    console.log('BehaviorTree started');
+    console.log('Behavior Tree extension started');
 
     if (!extensionSettings.behaviortree) {
         extensionSettings.behaviortree = settings;
@@ -424,6 +449,19 @@ jQuery(async () => {
         settings.enabled = $('#bt_enabled').prop('checked');
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
+    });
+    $('#bt_query_api').val(settings.backendApi).on('change', () => {
+        settings.backendApi = String($('#bt_query_api').val());
+        Object.assign(extensionSettings.behaviortree, settings);
+        saveSettingsDebounced();
+        setQueryApi(settings.backendApi);
+        switchSourceControls(settings.backendApi);
+    });
+    $('#bt_koboldcpp_api_url_text').val(settings.koboldCppEndpoint).on('change', () => {
+        settings.koboldCppEndpoint = String($('#bt_koboldcpp_api_url_text').val());
+        Object.assign(extensionSettings.behaviortree, settings);
+        saveSettingsDebounced();
+        setQueryApi(settings.backendApi);
     });
     $('#bt_chat_depth').val(settings.chatDepth).on('input', () => {
         settings.chatDepth = Number($('#bt_chat_depth').val());
@@ -493,6 +531,8 @@ jQuery(async () => {
         saveSettingsDebounced();
     });
 
-    btree = new AsyncBehaviorTree(new KoboldCpp(), substituteParams);
-    tryLoadTreeForCharacter()
+    btree = new AsyncBehaviorTree(null, substituteParams);
+    setQueryApi(settings.backendApi);
+    switchSourceControls(settings.backendApi);
+    tryLoadTreeForCharacter();
 });

@@ -27,12 +27,12 @@ export class QueryTask extends Task {
                     console.log(`Query: ${this.name}`);
                     if (blackboard.state[this.name] === 'YES') {
                         handleResponseActions(this.config.yes, blackboard);
-                        console.log('YES (cached)');
+                        console.log('Query response: YES (cached)');
                         return SUCCESS;
                     }
                     if (blackboard.state[this.name] === 'NO') {
                         handleResponseActions(this.config.no, blackboard);
-                        console.log('NO (cached)');
+                        console.log('Query response: NO (cached)');
                         return FAILURE;
                     }
                 }
@@ -62,13 +62,13 @@ export class QueryTask extends Task {
                         if (this.config.cacheYes) {
                             blackboard.state[this.name] = 'YES';
                         }
-                        console.log('YES');
+                        console.log('Query response: YES');
                         return SUCCESS;
                     } else {
                         if (this.config.cacheNo) {
                             blackboard.state[this.name] = 'NO';
                         }
-                        console.log('NO');
+                        console.log('Query response: NO');
                         return FAILURE;
                     }
                 }
