@@ -13,7 +13,7 @@ const settings = {
     chatDepth: 0,
     executionFrequency: 1,
     executionCounter: 1,
-    chatQueryLength: 30,
+    chatQueryLength: 20,
     responsePrelude: DEFAULT_RESPONSE_PRELUDE,
     varsResponse: DEFAULT_VARS_RESPONSE,
     scenariosResponse: DEFAULT_SCENARIOS_RESPONSE,
@@ -93,15 +93,22 @@ window['BehaviorTree'] = async (coreChat) => {
 
     const chatString = buildChatForQuery(coreChat);
 
-    // Reuse the previous response if the chat hasn't changed, i.e. swipes.
-    if (lastResponse && lastChatString && chatString === lastChatString) {
+    // This is a guess, but probably good.
+    const isSwipe = lastChatString && chatString === lastChatString;
+
+    // Reuse the previous response for swipes.
+    if (lastResponse && isSwipe) {
         console.log(`Behavior Tree using cached result:\n${lastResponse}`);
         setExtensionPrompt(MODULE_NAME, lastResponse, 1, settings.chatDepth);
         return;
     }
 
-    if (settings.executionCounter != 1) {
-        updateTurnCounter(settings.executionCounter - 1)
+    if (settings.executionCounter > 1) {
+        // Don't decrement the counter for swipes
+        if (!isSwipe) {
+            updateTurnCounter(settings.executionCounter - 1)
+        }
+        lastResponse = '';
         return;
     } else {
         updateTurnCounter(settings.executionFrequency)
@@ -179,6 +186,11 @@ function enableLoadSave(isEnabled) {
         });
         $('#bt_view_tree').on('click', handleViewTreeButton);
 
+        $('#bt_view_state_button').on('click', () => {
+            $('#bt_view_state').trigger('click');
+        });
+        $('#bt_view_state').on('click', handleViewStateButton);
+
         $('#bt_load_tree_button').on('click', () => {
             $('#bt_load_tree').trigger('click');
         });
@@ -192,6 +204,8 @@ function enableLoadSave(isEnabled) {
         //console.log("save disabled");
         $('#bt_view_tree_button').on('click');
         $('#bt_view_tree').off("click");
+        $('#bt_view_state_button').on('click');
+        $('#bt_view_state').off("click");
         $('#bt_load_tree_button').off("click");
         $('#bt_load_tree').off("change");
         $('#bt_restore_tree_button').off("click");
@@ -200,10 +214,12 @@ function enableLoadSave(isEnabled) {
 }
 
 async function handleImportTreeButton(e) {
-    enableLoadSave(false);
-
     const file = e.target.files[0];
     const form = e.target.form;
+
+    if (!btree) {
+        return;
+    }
 
     if (!file || file.type !== 'application/json') {
         form && form.reset();
@@ -211,20 +227,13 @@ async function handleImportTreeButton(e) {
         return;
     }
 
+    enableLoadSave(false);
+
     const fileData = await getBase64Async(file);
     const base64Data = fileData.split(',')[1];
 
     const treeTemplate = window.atob(base64Data);
-    if (btree) {
-        btree.setTreeTemplate(treeTemplate);
-        console.log(`Behavior Tree initialized: ${btree.getTreeName()}`);
-
-        const templateFileName = getCharacterTreeFilename();
-        if (templateFileName) {
-            await saveTreeTemplateFile(templateFileName, base64Data);
-        }
-        $("#bt_current_tree_filename").text(btree.getTreeName());
-    }
+    reloadTreeAndSave(treeTemplate, base64Data);
 
     form && form.reset();
     $(this).val('');
@@ -251,6 +260,41 @@ async function handleViewTreeButton() {
         .addClass('alignitemscenter')
         .val(btree.getTreeTemplate());
 
+    const editSave = await callGenericPopup(textarea, POPUP_TYPE.CONFIRM, '', {
+        wide: true,
+        large: true,
+        allowHorizontalScrolling: true,
+        okButton: 'Save',
+        cancelButton: 'Cancel'
+    });
+
+    if (editSave) {
+        reloadTreeAndSave(textarea.val(), null);
+    }
+
+    enableLoadSave(true);
+}
+
+async function handleViewStateButton() {
+    const {
+        POPUP_TYPE,
+        callGenericPopup,
+    } = SillyTavern.getContext();
+
+    if (!btree) {
+        return;
+    }
+
+    enableLoadSave(false);
+
+    const textarea = $('<textarea></textarea>')
+        .attr('id', 'st_settings_show_tree')
+        .addClass('flex-container')
+        .addClass('flexFlowColumn')
+        .addClass('justifyCenter')
+        .addClass('alignitemscenter')
+        .val(btree.getState());
+
     const confirm = await callGenericPopup(textarea, POPUP_TYPE.CONFIRM, '', {
         wide: true,
         large: true,
@@ -260,15 +304,9 @@ async function handleViewTreeButton() {
     });
 
     if (confirm) {
-        btree.setTreeTemplate(textarea.val());
-        console.log(`Behavior Tree initialized: ${btree.getTreeName()}`);
+        lastChatString = null;   // Clear the cached response
 
-        const templateFileName = getCharacterTreeFilename();
-        if (templateFileName) {
-            const base64Data = window.btoa(textarea.val());
-            await saveTreeTemplateFile(templateFileName, base64Data);
-        }
-        $("#bt_current_tree_filename").text(btree.getTreeName());
+        btree.setState(textarea.val());
     }
 
     enableLoadSave(true);
@@ -289,18 +327,34 @@ async function handleRestoreTreeButton() {
     const confirm = await callGenericPopup("Do you want to overwrite the behavior tree with an empty tree?", POPUP_TYPE.CONFIRM);
 
     if (confirm) {
-        btree.setTreeTemplate(DefaultTree);
-        console.log(`Behavior Tree initialized: ${btree.getTreeName()}`);
-
-        const templateFileName = getCharacterTreeFilename();
-        if (templateFileName) {
-            const base64Data = window.btoa(DefaultTree);
-            await saveTreeTemplateFile(templateFileName, base64Data);
-        }
-        $("#bt_current_tree_filename").text(btree.getTreeName());
+        reloadTreeAndSave(DefaultTree, null);
     }
 
     enableLoadSave(true);
+}
+
+async function reloadTreeAndSave(treeTemplate, base64Data) {
+    const {
+        POPUP_TYPE,
+        callGenericPopup,
+    } = SillyTavern.getContext();
+
+    lastChatString = null;   // Clear the cached response
+
+    const confirm = await callGenericPopup("Do you want to clear the state data?", POPUP_TYPE.CONFIRM);
+
+    btree.setTreeTemplate(treeTemplate, confirm);
+    console.log(`Behavior Tree initialized: ${btree.getTreeName()}`);
+
+    const templateFileName = getCharacterTreeFilename();
+    if (templateFileName) {
+        if (!base64Data) {
+            base64Data = window.btoa(treeTemplate);
+        }
+        await saveTreeTemplateFile(templateFileName, base64Data);
+    }
+
+    $("#bt_current_tree_filename").text(btree.getTreeName());
 }
 
 // Load a file for current character if it exists. Then set up the btree and update the UI.
@@ -311,12 +365,14 @@ async function tryLoadTreeForCharacter() {
 
     const templateFileName = getCharacterTreeFilename();
     if (templateFileName) {
+        lastChatString = null;   // Clear the cached response
+
         const treeTemplate = await loadTreeTemplateFile(templateFileName);
 
         if (treeTemplate) {
-            btree.setTreeTemplate(treeTemplate);
+            btree.setTreeTemplate(treeTemplate, true);
         } else {
-            btree.setTreeTemplate(DefaultTree);
+            btree.setTreeTemplate(DefaultTree, true);
         }
         console.log(`Behavior Tree initialized: ${btree.getTreeName()}`);
     }

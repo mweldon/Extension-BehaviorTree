@@ -4,6 +4,10 @@ export class QueryTask extends Task {
     constructor(props) {
         super({
             start: function (blackboard) {
+                if (!this.name) {
+                    this.name = crypto.randomUUID();
+                }
+
                 this.isRunning = false;
                 this.isFinished = false;
                 this.gotYesResponse = false;
@@ -17,7 +21,21 @@ export class QueryTask extends Task {
                 if (!this.config.data) {
                     return SUCCESS;
                 }
-                
+
+                if (this.name in blackboard.state) {
+                    console.log(`Query: ${this.name}`);
+                    if (blackboard.state[this.name] === 'YES') {
+                        handleResponse(this.config.yes, blackboard);
+                        console.log('YES (cached)');
+                        return SUCCESS;
+                    }
+                    if (blackboard.state[this.name] === 'NO') {
+                        handleResponse(this.config.no, blackboard);
+                        console.log('NO (cached)');
+                        return FAILURE;
+                    }
+                }
+
                 if (!this.isRunning && !this.isFinished) {
                     this.isRunning = true;
 
@@ -26,23 +44,12 @@ export class QueryTask extends Task {
                     console.log(`Query: ${query}`);
                     blackboard.running = blackboard.engine.performQuery(blackboard.context, query)
                         .then(response => {
-                            let resultActions = null;
+                            this.gotYesResponse = response === 'YES';
                             if (response === 'YES') {
-                                resultActions = this.config.yes
+                                handleResponse(this.config.yes, blackboard);
                                 this.gotYesResponse = true;
                             } else if (response === 'NO') {
-                                resultActions = this.config.no
-                            }
-
-                            if (resultActions) {
-                                if (resultActions.set_vars) {
-                                    for (const [key, value] of Object.entries(resultActions.set_vars)) {
-                                        blackboard.vars[key] = Math.max(Math.min(value, 100), -1);
-                                    }
-                                }
-                                if (resultActions.add_scenarios) {
-                                    blackboard.scenarios.push(...resultActions.add_scenarios)
-                                }
+                                handleResponse(this.config.no, blackboard);
                             }
 
                             this.isFinished = true;
@@ -51,10 +58,16 @@ export class QueryTask extends Task {
 
                 if (this.isFinished) {
                     if (this.gotYesResponse) {
-                        console.log("YES");
+                        if (this.config.cacheYes) {
+                            blackboard.state[this.name] = 'YES';
+                        }
+                        console.log('YES');
                         return SUCCESS;
                     } else {
-                        console.log("NO");
+                        if (this.config.cacheNo) {
+                            blackboard.state[this.name] = 'NO';
+                        }
+                        console.log('NO');
                         return FAILURE;
                     }
                 }
@@ -66,3 +79,17 @@ export class QueryTask extends Task {
         });
     }
 }
+
+function handleResponse(resultActions, blackboard) {
+    if (resultActions) {
+        if (resultActions.set_vars) {
+            for (const [key, value] of Object.entries(resultActions.set_vars)) {
+                blackboard.vars[key] = Math.max(Math.min(value, 100), -1);
+            }
+        }
+        if (resultActions.add_scenarios) {
+            blackboard.scenarios.push(...resultActions.add_scenarios)
+        }
+    }
+}
+

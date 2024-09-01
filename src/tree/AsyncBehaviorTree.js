@@ -10,6 +10,7 @@ export class AsyncBehaviorTree {
         this.blackboard = {
             engine: engine,
             substituteParams: substituteParams,
+            state: {},
             vars: {},
             varsmap: {},
             context: '',
@@ -19,7 +20,7 @@ export class AsyncBehaviorTree {
 
         this.importer = this.createBehaviorTreeImporter();
 
-        this.setTreeTemplate(DefaultTree);
+        this.setTreeTemplate(DefaultTree, false);
     }
 
     createBehaviorTreeImporter() {
@@ -32,11 +33,20 @@ export class AsyncBehaviorTree {
         return importer;
     }
 
+    resetBlackboard() {
+        this.blackboard.state = {};
+        this.blackboard.vars = {};
+        this.blackboard.varsmap = {};
+        this.blackboard.context = '';
+        this.blackboard.scenarios = [];
+        this.blackboard.running = null;
+    }
+
     getTreeTemplate() {
         return this.treeTemplate;
     }
 
-    setTreeTemplate(treeTemplate) {
+    setTreeTemplate(treeTemplate, resetState) {
         if (treeTemplate && (!this.bTree || this.treeTemplate !== treeTemplate)) {
             this.treeTemplate = treeTemplate;
             this.tree = this.importer.parse(JSON.parse(treeTemplate));
@@ -45,6 +55,17 @@ export class AsyncBehaviorTree {
                 blackboard: this.blackboard
             });
         }
+        if (resetState) {
+            this.resetBlackboard();
+        }
+    }
+
+    getState() {
+        return JSON.stringify(this.blackboard.state, null, 4);
+    }
+
+    setState(state) {
+        this.blackboard.state = JSON.parse(state);
     }
 
     getTreeName() {

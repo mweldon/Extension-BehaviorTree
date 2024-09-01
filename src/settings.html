@@ -14,6 +14,9 @@
                 <div id="bt_view_tree_button" class="menu_button" title="View tree">
                     <i class="fa-solid fa-eye"></i>
                 </div>
+                <div id="bt_view_state_button" class="menu_button" title="View state data">
+                    <i class="fa-solid fa-book"></i>
+                </div>
                 <div id="bt_load_tree_button" class="menu_button" title="Import tree">
                     <i class="fa-solid fa-file-import"></i>
                 </div>
@@ -24,6 +27,7 @@
                 <span id="bt_current_tree_filename" class="title_restorable"></span>
 
                 <input id="bt_view_tree" class="displayNone" type="submit" hidden />
+                <input id="bt_view_state" class="displayNone" type="submit" hidden />
                 <input id="bt_load_tree" class="displayNone" type="file" accept=".json" hidden />
                 <input id="bt_restore_tree" class="displayNone" type="submit" hidden />
             </div>
@@ -45,7 +49,7 @@
                     <label for="bt_turn_counter">
                         <small data-i18n="Next execution in">Next execution in</small>
                     </label>
-                    <input type="number" id="bt_turn_counter" class="text_pole" min="0" max="99" />
+                    <input type="number" id="bt_turn_counter" class="text_pole" min="1" max="99" />
                 </div>
             </div>
             <div class="flex-container marginTopBot5">
