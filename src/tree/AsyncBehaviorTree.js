@@ -4,6 +4,8 @@ import { SetVarsTask } from './SetVarsTask.js';
 import { CreateVarsTask } from './CreateVarsTask.js';
 import { QueryTask } from './QueryTask.js';
 import { RandomRollTask } from './RandomRollTask.js';
+import { SetStateTask } from './SetStateTask.js';
+import { CheckStateTask } from './CheckStateTask.js';
 
 export class AsyncBehaviorTree {
     constructor(engine, substituteParams) {
@@ -25,11 +27,13 @@ export class AsyncBehaviorTree {
 
     createBehaviorTreeImporter() {
         const importer = new BehaviorTreeImporter();
-        importer.defineType("create_vars", CreateVarsTask);
-        importer.defineType("query", QueryTask);
-        importer.defineType("add_scenarios", AddScenariosTask);
-        importer.defineType("set_vars", SetVarsTask);
-        importer.defineType("random_roll", RandomRollTask);
+        importer.defineType('create_vars', CreateVarsTask);
+        importer.defineType('query', QueryTask);
+        importer.defineType('add_scenarios', AddScenariosTask);
+        importer.defineType('set_vars', SetVarsTask);
+        importer.defineType('random_roll', RandomRollTask);
+        importer.defineType('set_state', SetStateTask);
+        importer.defineType('check_state', CheckStateTask);
         return importer;
     }
 

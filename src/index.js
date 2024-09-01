@@ -68,8 +68,8 @@ async function executeBehaviorTree(chatString) {
         btree.step();
         const response = await btree.getResponse(settings);
         return response;
-    } catch {
-        console.error(`ERROR executing BehaviorTree`);
+    } catch (error) {
+        console.error('Error executing behavior tree:', error);
         return '';
     }
 }
@@ -161,7 +161,7 @@ async function saveTreeTemplateFile(filename, content) {
             console.error(await result.text());
         }
     } catch (error) {
-        console.error('Could not upload file', error);
+        console.error('Error uploading file:', error);
     }
 }
 
@@ -229,11 +229,15 @@ async function handleImportTreeButton(e) {
 
     enableLoadSave(false);
 
-    const fileData = await getBase64Async(file);
-    const base64Data = fileData.split(',')[1];
+    try {
+        const fileData = await getBase64Async(file);
+        const base64Data = fileData.split(',')[1];
 
-    const treeTemplate = window.atob(base64Data);
-    reloadTreeAndSave(treeTemplate, base64Data);
+        const treeTemplate = window.atob(base64Data);
+        reloadTreeAndSave(treeTemplate, base64Data);
+    } catch (error) {
+        console.error('Error saving tree:', error)
+    }
 
     form && form.reset();
     $(this).val('');
@@ -268,8 +272,12 @@ async function handleViewTreeButton() {
         cancelButton: 'Cancel'
     });
 
-    if (editSave) {
-        reloadTreeAndSave(textarea.val(), null);
+    try {
+        if (editSave) {
+            reloadTreeAndSave(textarea.val(), null);
+        }
+    } catch (error) {
+        console.error('Error saving tree:', error)
     }
 
     enableLoadSave(true);
@@ -303,10 +311,14 @@ async function handleViewStateButton() {
         cancelButton: 'Cancel'
     });
 
-    if (confirm) {
-        lastChatString = null;   // Clear the cached response
+    try {
+        if (confirm) {
+            lastChatString = null;   // Clear the cached response
 
-        btree.setState(textarea.val());
+            btree.setState(textarea.val());
+        }
+    } catch (error) {
+        console.error('Error saving state data:', error)
     }
 
     enableLoadSave(true);
@@ -326,8 +338,12 @@ async function handleRestoreTreeButton() {
 
     const confirm = await callGenericPopup("Do you want to overwrite the behavior tree with an empty tree?", POPUP_TYPE.CONFIRM);
 
-    if (confirm) {
-        reloadTreeAndSave(DefaultTree, null);
+    try {
+        if (confirm) {
+            reloadTreeAndSave(DefaultTree, null);
+        }
+    } catch (error) {
+        console.error('Error saving tree:', error)
     }
 
     enableLoadSave(true);

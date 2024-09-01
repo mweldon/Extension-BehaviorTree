@@ -1,18 +1,15 @@
 import { FAILURE, SUCCESS, Task } from 'behaviortree';
 import { handleResponseActions } from './utils.js'
 
-export class RandomRollTask extends Task {
+export class CheckStateTask extends Task {
     constructor(props) {
         super({
             run: function (blackboard) {
                 const data = this.config.data;
-                const range = data.high - data.low + 1;
-                const rand = Math.random();
-                const roll = Math.floor(rand * range) + data.low;
-                console.log(`Random roll ${data.low}-${data.high}, target ${data.target}, result ${roll}`);
+                console.log(`CheckState: ${data.state} = ${data.target}`);
 
                 let result = SUCCESS;
-                if (roll >= data.target) {
+                if (blackboard.state[data.state] === data.target) {
                     handleResponseActions(this.config.yes, blackboard);
                     result = SUCCESS;
                 } else {

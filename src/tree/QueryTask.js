@@ -1,4 +1,5 @@
 import { FAILURE, RUNNING, SUCCESS, Task } from 'behaviortree';
+import { handleResponseActions } from './utils.js'
 
 export class QueryTask extends Task {
     constructor(props) {
@@ -25,12 +26,12 @@ export class QueryTask extends Task {
                 if (this.name in blackboard.state) {
                     console.log(`Query: ${this.name}`);
                     if (blackboard.state[this.name] === 'YES') {
-                        handleResponse(this.config.yes, blackboard);
+                        handleResponseActions(this.config.yes, blackboard);
                         console.log('YES (cached)');
                         return SUCCESS;
                     }
                     if (blackboard.state[this.name] === 'NO') {
-                        handleResponse(this.config.no, blackboard);
+                        handleResponseActions(this.config.no, blackboard);
                         console.log('NO (cached)');
                         return FAILURE;
                     }
@@ -46,10 +47,10 @@ export class QueryTask extends Task {
                         .then(response => {
                             this.gotYesResponse = response === 'YES';
                             if (response === 'YES') {
-                                handleResponse(this.config.yes, blackboard);
+                                handleResponseActions(this.config.yes, blackboard);
                                 this.gotYesResponse = true;
                             } else if (response === 'NO') {
-                                handleResponse(this.config.no, blackboard);
+                                handleResponseActions(this.config.no, blackboard);
                             }
 
                             this.isFinished = true;
@@ -79,17 +80,3 @@ export class QueryTask extends Task {
         });
     }
 }
-
-function handleResponse(resultActions, blackboard) {
-    if (resultActions) {
-        if (resultActions.set_vars) {
-            for (const [key, value] of Object.entries(resultActions.set_vars)) {
-                blackboard.vars[key] = Math.max(Math.min(value, 100), -1);
-            }
-        }
-        if (resultActions.add_scenarios) {
-            blackboard.scenarios.push(...resultActions.add_scenarios)
-        }
-    }
-}
-
