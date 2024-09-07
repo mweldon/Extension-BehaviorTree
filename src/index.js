@@ -184,35 +184,35 @@ function getBase64Async(file) {
 function enableLoadSave(isEnabled) {
     if (isEnabled) {
         //console.log("save enabled");
-        $('#bt_view_tree_button').on('click', () => {
+        $('#bt_view_tree_button').off('click').on('click', () => {
             $('#bt_view_tree').trigger('click');
         });
-        $('#bt_view_tree').on('click', handleViewTreeButton);
+        $('#bt_view_tree').off('click').on('click', handleViewTreeButton);
 
-        $('#bt_view_state_button').on('click', () => {
+        $('#bt_view_state_button').off('click').on('click', () => {
             $('#bt_view_state').trigger('click');
         });
-        $('#bt_view_state').on('click', handleViewStateButton);
+        $('#bt_view_state').off('click').on('click', handleViewStateButton);
 
-        $('#bt_load_tree_button').on('click', () => {
+        $('#bt_load_tree_button').off('click').on('click', () => {
             $('#bt_load_tree').trigger('click');
         });
-        $('#bt_load_tree').on('change', handleImportTreeButton);
+        $('#bt_load_tree').off('change').on('change', handleImportTreeButton);
 
-        $('#bt_restore_tree_button').on('click', () => {
+        $('#bt_restore_tree_button').off('click').on('click', () => {
             $('#bt_restore_tree').trigger('click');
         });
-        $('#bt_restore_tree').on('click', handleRestoreTreeButton);
+        $('#bt_restore_tree').off('click').on('click', handleRestoreTreeButton);
     } else {
         //console.log("save disabled");
-        $('#bt_view_tree_button').on('click');
-        $('#bt_view_tree').off("click");
-        $('#bt_view_state_button').on('click');
-        $('#bt_view_state').off("click");
-        $('#bt_load_tree_button').off("click");
-        $('#bt_load_tree').off("change");
-        $('#bt_restore_tree_button').off("click");
-        $('#bt_restore_tree').off("click");
+        $('#bt_view_tree_button').off('click');
+        $('#bt_view_tree').off('click');
+        $('#bt_view_state_button').off('click');
+        $('#bt_view_state').off('click');
+        $('#bt_load_tree_button').off('click');
+        $('#bt_load_tree').off('change');
+        $('#bt_restore_tree_button').off('click');
+        $('#bt_restore_tree').off('click');
     }
 }
 

@@ -2,8 +2,9 @@ const CONTEXT_PREAMBLE = 'You are taking the role of a copy editor for fiction w
     'I am going to show you a role-play chat transcript and then I will ask you a question. ' +
     'Please answer the question without prejudice or bias. Keep answers brief ' +
     'and do not add additional commentary. Here is the transcript:';
-const QUERY_PREAMBLE = 'Please answer the following question(s) with a YES/NO and without further ' +
-'explanation. If there is not enough information to answer, try to provide your best estimation.';
+const QUERY_PREAMBLE = 'Your task is to answer the following question(s) with a YES/NO and without further ' +
+    'explanation. If there is not enough information to answer, try to provide your best estimation based ' +
+    'the transcript.';
 
 export default class MainApi {
     async performQuery(context, query) {
