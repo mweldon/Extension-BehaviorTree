@@ -2,11 +2,15 @@
 Create a dynamic branching scenario in SillyTavern using a Behavior Tree.
 
 ## Summary
-Behavior Trees are a data structure often used in game design to control AI agents performing complex sequences of actions. They are a flexible way to encode logic into AI behavior and give them realistic schedules and reactions in a dynamic environment. This extension uses the same principles to allow you to build logical structure for an AI role-playing session. 
+When designing an AI role-playing scenario, you might want special events to occur under specific circumstances. Maybe you want the character's personality to change during a full moon, or maybe you want the environment to become hostile once you steal the cursed artifact. Currently the only option is to add all of these details to the character card, either in the description, or the scenario section, or world info. This can result in lots of extra "if-then-else" logic in your prompt. This cuts into your available context tokens, and too much logic may confuse the AI. The remedy for this is often to switch to a larger, more expensive model, or one with a longer context, or even reduce the complexity of your scenario. This extension aims to eliminate the need for adding this kind of scenario logic to your prompt, and will allow you to manage it another way.
 
-While many of these features can be put into a character card, doing so clutters the character description and will often confuse the AI model. The remedy for this is using a larger-parameter model or a longer context, or both. AI models can only get so big and contexts can only get so long before they will inevitably forget details of the conversation. By utilizing a Behavior Tree, you can keep the character card focused the character's personality, and leave the management of the scenario and the tracking of important events to be handled by the Tree.
+This extension automates the act of adding OOC system messages to the prompt in order to steer the AI based on a logical flowchart-like mechanism. Behavior Trees are a data structure often used in game design to control AI agents performing complex sequences of actions. They are a flexible way to encode logic into AI behavior to give them realistic schedules and reactions to a dynamic environment. This extension uses the same principles to allow you to build logical structure for a complex role-playing scenario, without using up your valuable context tokens or requiring larger AI models.
+
+Using this extension, you can keep the character card focused the character's personality, and leave the management of the scenario and the tracking of important events to be handled by a Behavior Tree that you design, which will drive the scenario through injected system messages that the user never sees.
 
 ## Quick Start
+Update SillyTavern to at least version 1.21.4.
+
 Clone this git repository into your data directory using the following commands:
 ```
 cd {SillyTavern root}/data/default-user/extensions/
@@ -16,7 +20,7 @@ Refresh SillyTavern. In the Extensions view, expand Behavior Tree and click the 
 
 ## Background
 
-A Behavior Tree is a directed data structure where each node in the Tree is either a control node or a task node. Task nodes are customizable and the task nodes implemented in this extension will be described in another section. Each node in the tree can return a status code to its parent of either SUCCESS or FAILURE.
+A Behavior Tree is a directed data structure where each node in the Tree is either a control node or a task node. Each node in the tree can return a status code to its parent of either SUCCESS or FAILURE.
 
 ### Control nodes
 The main control nodes are the sequence and the selector.
@@ -29,6 +33,9 @@ A selector node will execute each of its children nodes until one of them respon
 
 ### Decorators
 A decorator is a special type of control node that only has one child and is designed to transform a node's return value. Examples of commonly-used decorators are Invert, which inverts the response of its child, and Fail or Succeed which always return a specific response.
+
+### Tasks
+Tasks are unique to the implementation of the Behavior Tree and several task nodes have been created for this extension that allow you to make decisions based on what is currently happening in the chat context. See the Reference section for more details.
 
 ## How to Use a Behavior Tree for AI role playing
 Whenever you send a new chat message in SillyTavern, this extension will capture the recent chat history and send it to a secondary AI, which will read the history and query it with YES/NO questions. The answers to these queries not only direct the traversal through branches of the Tree, but they can also modify variables or add scenarios modifiers to a block of text that will be injected into the context of the chat. This response text will be added to the chat context as a system message and can help direct the scenario.
