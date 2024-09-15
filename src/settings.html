@@ -5,46 +5,48 @@
             <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
         </div>
         <div class="inline-drawer-content">
-            <label class="checkbox_label" for="bt_enabled">
-                <input id="bt_enabled" type="checkbox" class="checkbox">
-                Enabled
-            </label>
+            <div class="flex-container marginTopBot5">
+                <div class="flex-container flex1 flexFlowColumn">
+                    <label class="checkbox_label" for="bt_enabled">
+                        <input id="bt_enabled" type="checkbox" class="checkbox">
+                        Enabled
+                    </label>
 
-            <label for="bt_query_api" data-i18n="ext_sum_with">Query API:</label>
-            <select id="bt_query_api">
-                <option value="main" data-i18n="ext_sum_main_api">Main API</option>
-                <option value="koboldcpp">KoboldCpp</option>
-            </select><br>
+                    <div class="flex-container">
+                        <span class="title_restorable">Current tree:</span>
+                        <span id="bt_current_tree_filename" class="title_restorable"></span>
+                    </div>
 
-            <div data-bt-query-source="koboldcpp" class="flex-container">
-                <div class="flex1">
-                    <h4 data-i18n="API url">API URL</h4>
-                    <small data-i18n="Example: 127.0.0.1:5001">Example: http://127.0.0.1:5001</small>
-                    <input id="bt_koboldcpp_api_url_text" class="text_pole" value="" >
-                </div>
-           </div>
+                    <div class="flex-container">
+                        <div id="bt_view_tree_button" class="menu_button" title="View tree">
+                            <i class="fa-solid fa-eye"></i>
+                        </div>
+                        <div id="bt_view_state_button" class="menu_button" title="View state data">
+                            <i class="fa-solid fa-book"></i>
+                        </div>
+                        <div id="bt_load_tree_button" class="menu_button" title="Import tree">
+                            <i class="fa-solid fa-file-import"></i>
+                        </div>
+                        <div id="bt_restore_tree_button" class="menu_button" title="Restore default">
+                            <i class="fa-solid fa-undo"></i>
+                        </div>
+                        <div id="bt_do_stuff_button" class="menu_button">
+                            <i class="fa-solid fa-book"></i>
+                        </div>
 
-            <div class="flex-container">
-                <div id="bt_view_tree_button" class="menu_button" title="View tree">
-                    <i class="fa-solid fa-eye"></i>
+                        <input id="bt_view_tree" class="displayNone" type="submit" hidden />
+                        <input id="bt_view_state" class="displayNone" type="submit" hidden />
+                        <input id="bt_load_tree" class="displayNone" type="file" accept=".json" hidden />
+                        <input id="bt_restore_tree" class="displayNone" type="submit" hidden />
+                        <input id="bt_do_stuff" class="displayNone" type="file" accept="*" hidden />
+                    </div>
                 </div>
-                <div id="bt_view_state_button" class="menu_button" title="View state data">
-                    <i class="fa-solid fa-book"></i>
-                </div>
-                <div id="bt_load_tree_button" class="menu_button" title="Import tree">
-                    <i class="fa-solid fa-file-import"></i>
-                </div>
-                <div id="bt_restore_tree_button" class="menu_button" title="Restore default">
-                    <i class="fa-solid fa-undo"></i>
-                </div>
-                <span class="title_restorable">Current tree:</span>
-                <span id="bt_current_tree_filename" class="title_restorable"></span>
 
-                <input id="bt_view_tree" class="displayNone" type="submit" hidden />
-                <input id="bt_view_state" class="displayNone" type="submit" hidden />
-                <input id="bt_load_tree" class="displayNone" type="file" accept=".json" hidden />
-                <input id="bt_restore_tree" class="displayNone" type="submit" hidden />
+                <div class="flex-container flex1 flexFlowColumn">
+                    <img id="bt_logo_image" src="" alt="Behavior Tree Logo" />
+                </div>
             </div>
+
 
             <div class="flex-container marginTopBot5">
                 <div class="flex-container flex1 flexFlowColumn title="How far from the bottom of the context will the prompt be injected.">
@@ -66,6 +68,22 @@
                     <input type="number" id="bt_turn_counter" class="text_pole" min="1" max="99" />
                 </div>
             </div>
+
+            <div class="flex-container marginTopBot5">
+                <label for="bt_query_api" data-i18n="ext_sum_with">Query API:</label>
+                <select id="bt_query_api">
+                    <option value="main" data-i18n="ext_sum_main_api">Main API</option>
+                    <option value="koboldcpp">KoboldCpp</option>
+                </select><br>
+                <div data-bt-query-source="koboldcpp" class="flex-container">
+                    <div class="flex1">
+                        <h4 data-i18n="API url">API URL</h4>
+                        <small data-i18n="Example: 127.0.0.1:5001">Example: http://127.0.0.1:5001</small>
+                        <input id="bt_koboldcpp_api_url_text" class="text_pole" value="">
+                    </div>
+                </div>
+            </div>
+
             <div class="flex-container marginTopBot5">
                 <div class="flex-container flex1 flexFlowColumn"
                     title="How many recent messages to process when executing the Behavior Tree.">

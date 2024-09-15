@@ -2,6 +2,7 @@ import './style.css';
 import { AsyncBehaviorTree, DefaultTree } from './tree/AsyncBehaviorTree.js';
 import KoboldCpp from './engine/KoboldCpp.js';
 import MainApi from './engine/MainApi.js';
+import { bt_logo, bt_logo_disabled } from './images.js';
 
 const MODULE_NAME = 'third-party/Extension-BehaviorTree';
 const SETTINGS_LAYOUT = 'src/settings';
@@ -18,7 +19,7 @@ const settings = {
     responsePrelude: DEFAULT_RESPONSE_PRELUDE,
     varsResponse: DEFAULT_VARS_RESPONSE,
     scenariosResponse: DEFAULT_SCENARIOS_RESPONSE,
-    backendApi: 'koboldcpp',
+    backendApi: 'main',
     koboldCppEndpoint: 'http://127.0.0.1:5001',
 };
 
@@ -420,6 +421,10 @@ async function tryLoadTreeForCharacter() {
     $("#bt_current_tree_filename").text(btree.getTreeName());
 }
 
+function updateLogo() {
+    $('#bt_logo_image').attr("src", settings.enabled ? bt_logo : bt_logo_disabled);
+}
+
 // Runs at startup
 jQuery(async () => {
     const {
@@ -445,10 +450,13 @@ jQuery(async () => {
 
     enableLoadSave(true);
 
+    updateLogo();
+
     $('#bt_enabled').prop('checked', settings.enabled).on('input', () => {
         settings.enabled = $('#bt_enabled').prop('checked');
         Object.assign(extensionSettings.behaviortree, settings);
         saveSettingsDebounced();
+        updateLogo();
     });
     $('#bt_query_api').val(settings.backendApi).on('change', () => {
         settings.backendApi = String($('#bt_query_api').val());
